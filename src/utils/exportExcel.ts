@@ -1,16 +1,16 @@
 import ExcelJS from 'exceljs'
-import type { DetectedItem, ScanResult } from '../types'
+import type { ScanResult } from '../types'
 
 function fmtCurrency(value: number) {
   return `$${value.toLocaleString('en-AU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 }
 
 // Extract base64 string and extension from a data URL
-function parseDataUrl(dataUrl: string): { base64: string; ext: ExcelJS.ImageExtension } {
+function parseDataUrl(dataUrl: string): { base64: string; ext: 'png' | 'jpeg' | 'gif' } {
   const [meta, base64] = dataUrl.split(',')
   const mimeMatch = meta.match(/image\/(\w+)/)
   const mime = mimeMatch?.[1]?.toLowerCase() ?? 'jpeg'
-  const ext: ExcelJS.ImageExtension =
+  const ext: 'png' | 'jpeg' | 'gif' =
     mime === 'png' ? 'png' : mime === 'gif' ? 'gif' : 'jpeg'
   return { base64, ext }
 }
@@ -113,8 +113,10 @@ export async function exportToExcel(result: ScanResult, selectedIds: Set<string>
           const colIndex = ws.getColumn(photoCols[pi]).number - 1 // 0-based
 
           ws.addImage(imgId, {
-            tl: { col: colIndex, row: rowIndex - 1 },        // 0-based top-left
-            br: { col: colIndex + 1, row: rowIndex },         // 0-based bottom-right
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            tl: { col: colIndex, row: rowIndex - 1 } as any,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            br: { col: colIndex + 1, row: rowIndex } as any,
             editAs: 'oneCell',
           })
           // Clear text in photo cell so image isn't obscured by text
