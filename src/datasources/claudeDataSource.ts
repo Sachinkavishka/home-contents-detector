@@ -33,19 +33,11 @@ Rules:
 - If you cannot identify an item clearly, make a reasonable estimate and note it`
 
 export class ClaudeDataSource implements DataSource {
-  private apiKey: string
-
-  constructor(apiKey: string) {
-    this.apiKey = apiKey
-  }
-
   async analyseImage(imageBase64: string, mimeType: string, _imageUrl?: string): Promise<ScanResult> {
     const response = await fetch('/api/messages', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': this.apiKey,
-        'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
         model: 'claude-opus-4-6',

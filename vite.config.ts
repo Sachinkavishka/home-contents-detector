@@ -14,10 +14,13 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api\/messages/, '/messages'),
         configure: (proxy) => {
-          // Strip browser-identifying headers so Anthropic treats this as a server request
           proxy.on('proxyReq', (proxyReq) => {
+            // Strip browser-identifying headers
             proxyReq.removeHeader('origin')
             proxyReq.removeHeader('referer')
+            // Inject API key from .env.local for local development
+            const devKey = process.env.ANTHROPIC_API_KEY
+            if (devKey) proxyReq.setHeader('x-api-key', devKey)
           })
         },
       },

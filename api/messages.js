@@ -1,14 +1,15 @@
 // Vercel serverless function — proxies requests to Anthropic API
-// This replaces the Vite dev proxy for production builds.
+// The API key is stored in Vercel environment variables (ANTHROPIC_API_KEY),
+// never exposed to the browser.
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' })
   }
 
-  const apiKey = req.headers['x-api-key']
+  const apiKey = process.env.ANTHROPIC_API_KEY
   if (!apiKey) {
-    return res.status(400).json({ error: 'Missing x-api-key header' })
+    return res.status(500).json({ error: 'API key not configured on server.' })
   }
 
   try {
@@ -17,7 +18,7 @@ export default async function handler(req, res) {
       headers: {
         'Content-Type': 'application/json',
         'x-api-key': apiKey,
-        'anthropic-version': req.headers['anthropic-version'] || '2023-06-01',
+        'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify(req.body),
     })

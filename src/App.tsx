@@ -1,21 +1,13 @@
 import { useState, useCallback } from 'react'
-import { ApiKeyInput } from './components/ApiKeyInput'
 import { ImageUpload } from './components/ImageUpload'
 import { ItemsList } from './components/ItemsList'
 import { ClaudeDataSource, DemoDataSource } from './datasources'
 import type { ScanState } from './types'
 
 export default function App() {
-  const [apiKey, setApiKey] = useState(() => sessionStorage.getItem('hcd_key') ?? '')
   const [demoMode, setDemoMode] = useState(false)
   const [preview, setPreview] = useState<string | null>(null)
   const [scan, setScan] = useState<ScanState>({ status: 'idle', result: null, error: null })
-
-  const saveKey = useCallback((key: string) => {
-    setApiKey(key)
-    if (key) sessionStorage.setItem('hcd_key', key)
-    else sessionStorage.removeItem('hcd_key')
-  }, [])
 
   const handleImage = useCallback(
     async (base64: string, mimeType: string, previewUrl: string) => {
@@ -23,7 +15,7 @@ export default function App() {
       setScan({ status: 'scanning', result: null, error: null })
 
       try {
-        const source = demoMode ? new DemoDataSource() : new ClaudeDataSource(apiKey)
+        const source = demoMode ? new DemoDataSource() : new ClaudeDataSource()
         const result = await source.analyseImage(base64, mimeType, previewUrl)
         setScan({ status: 'done', result, error: null })
       } catch (err) {
@@ -34,7 +26,7 @@ export default function App() {
         })
       }
     },
-    [apiKey, demoMode],
+    [demoMode],
   )
 
   const reset = useCallback(() => {
@@ -56,14 +48,11 @@ export default function App() {
         </div>
       </header>
 
-      {!demoMode && <ApiKeyInput onSave={saveKey} saved={!!apiKey} />}
-
-      {/* Demo mode banner */}
       {demoMode && (
         <div className="demo-banner">
           <div className="api-key-inner">
             <span className="demo-badge">DEMO MODE</span>
-            <span className="api-key-label">Using sample data — no API key needed</span>
+            <span className="api-key-label">Using sample data</span>
             <button className="btn-ghost small" onClick={() => setDemoMode(false)}>
               Switch to Real AI
             </button>
@@ -74,12 +63,12 @@ export default function App() {
       <main className="main-content">
         {scan.status === 'idle' && (
           <>
-            <ImageUpload onImage={handleImage} disabled={!apiKey && !demoMode} />
-            {!demoMode && !apiKey && (
+            <ImageUpload onImage={handleImage} disabled={false} />
+            {!demoMode && (
               <div className="demo-prompt">
-                <span>No API key?</span>
+                <span>Want to explore first?</span>
                 <button className="btn-ghost small" onClick={() => setDemoMode(true)}>
-                  Try Demo Mode instead
+                  Try Demo Mode
                 </button>
               </div>
             )}
