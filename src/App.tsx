@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef } from 'react'
 import { ImageUpload } from './components/ImageUpload'
 import { ItemsList } from './components/ItemsList'
 import { SettingsPanel } from './components/SettingsPanel'
@@ -13,7 +13,14 @@ export default function App() {
   const { settings, updateSettings, resetSettings } = useSettings()
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [demoMode, setDemoMode] = useState(false)
+  const demoModeRef = useRef(false)
+  const setDemoModeSync = (val: boolean) => {
+    demoModeRef.current = val
+    setDemoMode(val)
+  }
   const [phase, setPhase] = useState<Phase>('upload')
+  const [exportingAll, setExportingAll] = useState(false)
+  const [toast, setToast] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [preview, setPreview] = useState<string | null>(null)
   const [completedScans, setCompletedScans] = useState<ScanResult[]>([])
@@ -29,7 +36,7 @@ export default function App() {
       setPreview(previewUrl)
       setPhase('scanning')
       try {
-        const source = demoMode ? new DemoDataSource() : new ClaudeDataSource()
+        const source = demoModeRef.current ? new DemoDataSource() : new ClaudeDataSource()
         const result = await source.analyseImage(base64, mimeType, previewUrl)
         if (mergeAfterScanIndex !== null) {
           // Auto-merge new items into the existing room
@@ -57,7 +64,7 @@ export default function App() {
         setPhase('error')
       }
     },
-    [demoMode, mergeAfterScanIndex],
+    [mergeAfterScanIndex],
   )
 
   const addAnotherRoom = useCallback(() => {
@@ -141,12 +148,36 @@ export default function App() {
     })
   }, [])
 
+  const showToast = useCallback((msg: string) => {
+    setToast(msg)
+    setTimeout(() => setToast(null), 3000)
+  }, [])
+
+  const handleExportAll = useCallback(async () => {
+    if (exportingAll) return
+    setExportingAll(true)
+    try {
+      await exportAllRoomsToExcel(completedScans)
+      showToast(`✅ Exported ${completedScans.length} rooms to Excel`)
+    } catch (e) {
+      showToast(`❌ Export failed: ${e instanceof Error ? e.message : 'Unknown error'}`)
+    } finally {
+      setExportingAll(false)
+    }
+  }, [completedScans, exportingAll, showToast])
+
   const grandTotal = completedScans.reduce(
     (s, sc) => s + sc.items.reduce((r, it) => r + it.estimatedValue * it.quantity, 0), 0
   )
 
   return (
     <div className="app">
+      {toast && (
+        <div className="toast">
+          {toast}
+        </div>
+      )}
+
       {settingsOpen && (
         <SettingsPanel
           settings={settings}
@@ -178,7 +209,7 @@ export default function App() {
           <div className="api-key-inner">
             <span className="demo-badge">DEMO MODE</span>
             <span className="api-key-label">Using sample data</span>
-            <button className="btn-ghost small" onClick={() => setDemoMode(false)}>
+            <button className="btn-ghost small" onClick={() => setDemoModeSync(false)}>
               Switch to Real AI
             </button>
           </div>
@@ -236,9 +267,10 @@ export default function App() {
               {completedScans.length > 1 && phase === 'results' && (
                 <button
                   className="btn-primary small"
-                  onClick={() => exportAllRoomsToExcel(completedScans)}
+                  onClick={handleExportAll}
+                  disabled={exportingAll}
                 >
-                  📊 Export All ({completedScans.length} rooms)
+                  {exportingAll ? '⏳ Exporting…' : `📊 Export All (${completedScans.length} rooms)`}
                 </button>
               )}
               <button className="btn-ghost small" onClick={resetAll}>
@@ -268,7 +300,7 @@ export default function App() {
             {!demoMode && completedScans.length === 0 && (
               <div className="demo-prompt">
                 <span>Want to explore first?</span>
-                <button className="btn-ghost small" onClick={() => setDemoMode(true)}>
+                <button className="btn-ghost small" onClick={() => setDemoModeSync(true)}>
                   Try Demo Mode
                 </button>
               </div>
@@ -305,7 +337,7 @@ export default function App() {
             <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap' }}>
               <button className="btn-primary" onClick={addAnotherRoom}>Try Again</button>
               {!demoMode && (
-                <button className="btn-ghost" onClick={() => { setDemoMode(true); addAnotherRoom() }}>
+                <button className="btn-ghost" onClick={() => { setDemoModeSync(true); addAnotherRoom() }}>
                   Try Demo Mode
                 </button>
               )}
