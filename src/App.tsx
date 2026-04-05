@@ -2,37 +2,74 @@ import { useState, useCallback } from 'react'
 import { ImageUpload } from './components/ImageUpload'
 import { ItemsList } from './components/ItemsList'
 import { ClaudeDataSource, DemoDataSource } from './datasources'
-import type { ScanState } from './types'
+import type { DetectedItem, ScanResult } from './types'
+import { exportAllRoomsToExcel } from './utils/exportExcel'
+
+type Phase = 'upload' | 'scanning' | 'results' | 'error'
 
 export default function App() {
   const [demoMode, setDemoMode] = useState(false)
+  const [phase, setPhase] = useState<Phase>('upload')
+  const [error, setError] = useState<string | null>(null)
   const [preview, setPreview] = useState<string | null>(null)
-  const [scan, setScan] = useState<ScanState>({ status: 'idle', result: null, error: null })
+
+  // All completed scans — edits are kept here
+  const [completedScans, setCompletedScans] = useState<ScanResult[]>([])
+  const [viewingRoom, setViewingRoom] = useState(0)
 
   const handleImage = useCallback(
     async (base64: string, mimeType: string, previewUrl: string) => {
       setPreview(previewUrl)
-      setScan({ status: 'scanning', result: null, error: null })
+      setPhase('scanning')
 
       try {
         const source = demoMode ? new DemoDataSource() : new ClaudeDataSource()
         const result = await source.analyseImage(base64, mimeType, previewUrl)
-        setScan({ status: 'done', result, error: null })
-      } catch (err) {
-        setScan({
-          status: 'error',
-          result: null,
-          error: err instanceof Error ? err.message : 'Unknown error',
+        setCompletedScans(prev => {
+          const updated = [...prev, result]
+          setViewingRoom(updated.length - 1)
+          return updated
         })
+        setPhase('results')
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Unknown error')
+        setPhase('error')
       }
     },
     [demoMode],
   )
 
-  const reset = useCallback(() => {
+  const addAnotherRoom = useCallback(() => {
     setPreview(null)
-    setScan({ status: 'idle', result: null, error: null })
+    setPhase('upload')
   }, [])
+
+  const resetAll = useCallback(() => {
+    setPreview(null)
+    setPhase('upload')
+    setCompletedScans([])
+    setViewingRoom(0)
+  }, [])
+
+  // Propagate item edits back into completedScans
+  const updateRoomItems = useCallback((roomIndex: number, items: DetectedItem[]) => {
+    setCompletedScans(prev =>
+      prev.map((scan, i) =>
+        i === roomIndex
+          ? { ...scan, items, totalValue: items.reduce((s, it) => s + it.estimatedValue * it.quantity, 0) }
+          : scan,
+      ),
+    )
+  }, [])
+
+  const switchRoom = useCallback((i: number) => {
+    setViewingRoom(i)
+    setPhase('results')
+  }, [])
+
+  const totalAllRooms = completedScans.reduce((s, scan) =>
+    s + scan.items.reduce((r, it) => r + it.estimatedValue * it.quantity, 0), 0
+  )
 
   return (
     <div className="app">
@@ -60,11 +97,64 @@ export default function App() {
         </div>
       )}
 
+      {/* Rooms navigation bar — shown once at least one scan is done */}
+      {completedScans.length > 0 && (
+        <div className="rooms-bar">
+          <div className="rooms-bar-inner">
+            <div className="rooms-chips">
+              {completedScans.map((scan, i) => (
+                <button
+                  key={i}
+                  className={`room-chip ${viewingRoom === i && phase === 'results' ? 'active' : ''}`}
+                  onClick={() => switchRoom(i)}
+                >
+                  {scan.roomType}
+                </button>
+              ))}
+              {phase === 'upload' && (
+                <span className="room-chip room-chip-scanning">📷 Scanning new room…</span>
+              )}
+            </div>
+
+            <div className="rooms-bar-actions">
+              {phase !== 'upload' && (
+                <button className="btn-ghost small" onClick={addAnotherRoom}>
+                  + Add Room
+                </button>
+              )}
+              {completedScans.length > 1 && phase === 'results' && (
+                <button
+                  className="btn-primary small"
+                  onClick={() => exportAllRoomsToExcel(completedScans)}
+                >
+                  📊 Export All ({completedScans.length} rooms)
+                </button>
+              )}
+              <button className="btn-ghost small" onClick={resetAll}>
+                Start Over
+              </button>
+            </div>
+          </div>
+
+          {completedScans.length > 1 && (
+            <div className="rooms-totals-bar">
+              <span>{completedScans.length} rooms</span>
+              <span>·</span>
+              <span>{completedScans.reduce((s, sc) => s + sc.items.length, 0)} items</span>
+              <span>·</span>
+              <strong>
+                {new Intl.NumberFormat('en-AU', { style: 'currency', currency: 'AUD', maximumFractionDigits: 0 }).format(totalAllRooms)} total
+              </strong>
+            </div>
+          )}
+        </div>
+      )}
+
       <main className="main-content">
-        {scan.status === 'idle' && (
+        {phase === 'upload' && (
           <>
             <ImageUpload onImage={handleImage} disabled={false} />
-            {!demoMode && (
+            {!demoMode && completedScans.length === 0 && (
               <div className="demo-prompt">
                 <span>Want to explore first?</span>
                 <button className="btn-ghost small" onClick={() => setDemoMode(true)}>
@@ -75,7 +165,7 @@ export default function App() {
           </>
         )}
 
-        {scan.status === 'scanning' && (
+        {phase === 'scanning' && (
           <div className="scanning-state">
             {preview && (
               <div className="scanning-preview-wrap">
@@ -94,17 +184,15 @@ export default function App() {
           </div>
         )}
 
-        {scan.status === 'error' && (
+        {phase === 'error' && (
           <div className="error-state">
             <div className="error-icon">⚠️</div>
             <h2>Something went wrong</h2>
-            <p className="error-message">{scan.error}</p>
+            <p className="error-message">{error}</p>
             <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap' }}>
-              <button className="btn-primary" onClick={reset}>
-                Try Again
-              </button>
+              <button className="btn-primary" onClick={addAnotherRoom}>Try Again</button>
               {!demoMode && (
-                <button className="btn-ghost" onClick={() => { setDemoMode(true); reset() }}>
+                <button className="btn-ghost" onClick={() => { setDemoMode(true); addAnotherRoom() }}>
                   Try Demo Mode
                 </button>
               )}
@@ -112,8 +200,14 @@ export default function App() {
           </div>
         )}
 
-        {scan.status === 'done' && scan.result && (
-          <ItemsList result={scan.result} onReset={reset} />
+        {phase === 'results' && completedScans[viewingRoom] && (
+          <ItemsList
+            key={viewingRoom}
+            result={completedScans[viewingRoom]}
+            onReset={completedScans.length === 1 ? resetAll : addAnotherRoom}
+            resetLabel={completedScans.length === 1 ? 'Scan Another Photo' : '+ Add Another Room'}
+            onItemsChange={(items) => updateRoomItems(viewingRoom, items)}
+          />
         )}
       </main>
     </div>

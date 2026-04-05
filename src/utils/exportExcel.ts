@@ -218,3 +218,154 @@ export async function exportToExcel(result: ScanResult, selectedIds: Set<string>
   document.body.removeChild(a)
   setTimeout(() => URL.revokeObjectURL(url), 1000)
 }
+
+// ── Multi-room export ──────────────────────────────────────────
+export async function exportAllRoomsToExcel(scans: ScanResult[]) {
+  if (scans.length === 0) return
+
+  const wb = new ExcelJS.Workbook()
+  wb.creator = 'Home Contents Detector'
+  wb.created = new Date()
+
+  const headerFill: ExcelJS.Fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF22263A' } }
+  const headerFont: Partial<ExcelJS.Font> = { bold: true, color: { argb: 'FFE8EAF0' }, size: 11 }
+  const headerBorder: Partial<ExcelJS.Borders> = { bottom: { style: 'medium', color: { argb: 'FF5C6BFF' } } }
+
+  const grandTotal = scans.reduce((s, sc) =>
+    s + sc.items.reduce((r, it) => r + it.estimatedValue * it.quantity, 0), 0)
+
+  // ── Sheet 1: Summary by Room ───────────────────────────────
+  const wsSummary = wb.addWorksheet('Room Summary')
+  wsSummary.columns = [
+    { header: 'Room',              key: 'room',  width: 22 },
+    { header: 'Items',             key: 'items', width: 10 },
+    { header: 'Total Value (AUD)', key: 'total', width: 20 },
+    { header: '% of Total',        key: 'pct',   width: 14 },
+    { header: 'Scan Date',         key: 'date',  width: 22 },
+  ]
+  wsSummary.getRow(1).eachCell(c => { c.fill = headerFill; c.font = headerFont; c.border = headerBorder; c.alignment = { vertical: 'middle', horizontal: 'center' } })
+  wsSummary.getRow(1).height = 28
+
+  scans.forEach((scan, idx) => {
+    const roomTotal = scan.items.reduce((s, it) => s + it.estimatedValue * it.quantity, 0)
+    const r = wsSummary.addRow({
+      room:  scan.roomType,
+      items: scan.items.reduce((s, it) => s + it.quantity, 0),
+      total: roomTotal,
+      pct:   `${((roomTotal / grandTotal) * 100).toFixed(1)}%`,
+      date:  new Date(scan.scanDate).toLocaleString('en-AU'),
+    })
+    r.getCell('total').numFmt = '"$"#,##0.00'
+    const f: ExcelJS.Fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: idx % 2 === 0 ? 'FF1A1D27' : 'FF22263A' } }
+    r.eachCell(c => { c.fill = f; c.font = { color: { argb: 'FFE8EAF0' }, size: 11 } })
+    r.height = 22
+  })
+
+  const sumTotal = wsSummary.addRow({
+    room: 'GRAND TOTAL', items: scans.reduce((s, sc) => s + sc.items.reduce((r, it) => r + it.quantity, 0), 0),
+    total: grandTotal, pct: '100%', date: '',
+  })
+  sumTotal.getCell('total').numFmt = '"$"#,##0.00'
+  sumTotal.eachCell(c => { c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF5C6BFF' } }; c.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 11 } })
+  sumTotal.height = 24
+
+  // ── Sheet 2: All Items combined ────────────────────────────
+  const wsAll = wb.addWorksheet('All Items')
+  wsAll.columns = [
+    { header: 'Room',              key: 'room',     width: 20 },
+    { header: 'Item Name',         key: 'name',     width: 34 },
+    { header: 'Category',          key: 'category', width: 18 },
+    { header: 'Condition',         key: 'condition',width: 12 },
+    { header: 'Qty',               key: 'qty',      width: 6  },
+    { header: 'Unit Value (AUD)',   key: 'unitVal',  width: 18 },
+    { header: 'Total Value (AUD)',  key: 'totalVal', width: 18 },
+    { header: 'Notes',             key: 'notes',    width: 28 },
+  ]
+  wsAll.getRow(1).eachCell(c => { c.fill = headerFill; c.font = headerFont; c.border = headerBorder; c.alignment = { vertical: 'middle', horizontal: 'center' } })
+  wsAll.getRow(1).height = 28
+  wsAll.views = [{ state: 'frozen', ySplit: 1 }]
+
+  let rowIdx = 0
+  for (const scan of scans) {
+    for (const item of scan.items) {
+      const r = wsAll.addRow({
+        room:      scan.roomType,
+        name:      item.name,
+        category:  item.category,
+        condition: item.condition.charAt(0).toUpperCase() + item.condition.slice(1),
+        qty:       item.quantity,
+        unitVal:   item.estimatedValue,
+        totalVal:  item.estimatedValue * item.quantity,
+        notes:     item.notes ?? '',
+      })
+      r.getCell('unitVal').numFmt = '"$"#,##0.00'
+      r.getCell('totalVal').numFmt = '"$"#,##0.00'
+      const f: ExcelJS.Fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: rowIdx % 2 === 0 ? 'FF1A1D27' : 'FF22263A' } }
+      r.eachCell(c => { c.fill = f; c.font = { color: { argb: 'FFE8EAF0' }, size: 11 }; c.alignment = { vertical: 'middle' } })
+      r.height = 22
+      rowIdx++
+    }
+  }
+
+  const allTotal = wsAll.addRow({
+    room: 'TOTAL', name: '', category: '', condition: '',
+    qty: scans.reduce((s, sc) => s + sc.items.reduce((r, it) => r + it.quantity, 0), 0),
+    unitVal: 0, totalVal: grandTotal, notes: '',
+  })
+  allTotal.getCell('totalVal').numFmt = '"$"#,##0.00'
+  allTotal.eachCell(c => { c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF5C6BFF' } }; c.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 11 } })
+  allTotal.height = 24
+
+  // ── One sheet per room ─────────────────────────────────────
+  for (const scan of scans) {
+    const sheetName = scan.roomType.slice(0, 31) // Excel sheet name max 31 chars
+    const wsRoom = wb.addWorksheet(sheetName)
+    wsRoom.columns = [
+      { header: 'Item Name',         key: 'name',     width: 34 },
+      { header: 'Category',          key: 'category', width: 18 },
+      { header: 'Condition',         key: 'condition',width: 12 },
+      { header: 'Qty',               key: 'qty',      width: 6  },
+      { header: 'Unit Value (AUD)',   key: 'unitVal',  width: 18 },
+      { header: 'Total Value (AUD)',  key: 'totalVal', width: 18 },
+      { header: 'Notes',             key: 'notes',    width: 28 },
+    ]
+    wsRoom.getRow(1).eachCell(c => { c.fill = headerFill; c.font = headerFont; c.border = headerBorder; c.alignment = { vertical: 'middle', horizontal: 'center' } })
+    wsRoom.getRow(1).height = 28
+    wsRoom.views = [{ state: 'frozen', ySplit: 1 }]
+
+    const roomTotal = scan.items.reduce((s, it) => s + it.estimatedValue * it.quantity, 0)
+    scan.items.forEach((item, idx) => {
+      const r = wsRoom.addRow({
+        name:      item.name,
+        category:  item.category,
+        condition: item.condition.charAt(0).toUpperCase() + item.condition.slice(1),
+        qty:       item.quantity,
+        unitVal:   item.estimatedValue,
+        totalVal:  item.estimatedValue * item.quantity,
+        notes:     item.notes ?? '',
+      })
+      r.getCell('unitVal').numFmt = '"$"#,##0.00'
+      r.getCell('totalVal').numFmt = '"$"#,##0.00'
+      const f: ExcelJS.Fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: idx % 2 === 0 ? 'FF1A1D27' : 'FF22263A' } }
+      r.eachCell(c => { c.fill = f; c.font = { color: { argb: 'FFE8EAF0' }, size: 11 }; c.alignment = { vertical: 'middle' } })
+      r.height = 22
+    })
+    const rTotal = wsRoom.addRow({ name: 'TOTAL', category: '', condition: '', qty: scan.items.reduce((s, it) => s + it.quantity, 0), unitVal: 0, totalVal: roomTotal, notes: '' })
+    rTotal.getCell('totalVal').numFmt = '"$"#,##0.00'
+    rTotal.eachCell(c => { c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF5C6BFF' } }; c.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 11 } })
+    rTotal.height = 24
+  }
+
+  // ── Download ───────────────────────────────────────────────
+  const date = new Date().toISOString().slice(0, 10)
+  const buffer = await wb.xlsx.writeBuffer()
+  const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `home-contents-all-rooms-${date}.xlsx`
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  setTimeout(() => URL.revokeObjectURL(url), 1000)
+}

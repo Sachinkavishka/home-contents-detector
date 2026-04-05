@@ -6,6 +6,8 @@ import { ItemEditModal } from './ItemEditModal'
 interface Props {
   result: ScanResult
   onReset: () => void
+  resetLabel?: string
+  onItemsChange?: (items: DetectedItem[]) => void
 }
 
 const CONDITION_BADGE: Record<string, string> = {
@@ -32,7 +34,7 @@ function fmt(value: number) {
   return new Intl.NumberFormat('en-AU', { style: 'currency', currency: 'AUD', maximumFractionDigits: 0 }).format(value)
 }
 
-export function ItemsList({ result, onReset }: Props) {
+export function ItemsList({ result, onReset, resetLabel = 'Scan Another Photo', onItemsChange }: Props) {
   const [items, setItems] = useState<DetectedItem[]>(() => result.items)
   const [selected, setSelected] = useState<Set<string>>(
     () => new Set(result.items.map((i) => i.id)),
@@ -46,7 +48,11 @@ export function ItemsList({ result, onReset }: Props) {
   const editingItem = editingId ? items.find((i) => i.id === editingId) ?? null : null
 
   function saveEdit(updated: DetectedItem) {
-    setItems(prev => prev.map(i => i.id === updated.id ? updated : i))
+    setItems(prev => {
+      const next = prev.map(i => i.id === updated.id ? updated : i)
+      onItemsChange?.(next)
+      return next
+    })
     setEditingId(null)
   }
 
@@ -149,7 +155,7 @@ export function ItemsList({ result, onReset }: Props) {
           </div>
 
           <button className="btn-primary full-width" onClick={onReset}>
-            Scan Another Photo
+            {resetLabel}
           </button>
         </aside>
 
