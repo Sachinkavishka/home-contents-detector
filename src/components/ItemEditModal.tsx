@@ -1,17 +1,14 @@
 import { useState, useRef } from 'react'
-import type { DetectedItem } from '../types'
+import type { DetectedItem, AppSettings } from '../types'
+import { DEFAULT_SETTINGS } from '../types'
 
 interface Props {
   item: DetectedItem
   onSave: (updated: DetectedItem) => void
   onClose: () => void
   isNew?: boolean
+  settings?: AppSettings
 }
-
-const CATEGORIES = [
-  'Electronics', 'Furniture', 'Appliances', 'Art & Decor',
-  'Jewellery', 'Clothing', 'Books', 'Sports & Fitness', 'Tools', 'Toys', 'Other',
-]
 
 function fileToDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -22,10 +19,12 @@ function fileToDataUrl(file: File): Promise<string> {
   })
 }
 
-export function ItemEditModal({ item, onSave, onClose, isNew = false }: Props) {
+export function ItemEditModal({ item, onSave, onClose, isNew = false, settings = DEFAULT_SETTINGS }: Props) {
+  const { formFields, customFields, categories } = settings
   const [draft, setDraft] = useState<DetectedItem>({
     ...item,
     photos: item.photos ? [...item.photos] : [],
+    customData: item.customData ? { ...item.customData } : {},
   })
   const libraryRef = useRef<HTMLInputElement>(null)
   const cameraRef = useRef<HTMLInputElement>(null)
@@ -50,58 +49,68 @@ export function ItemEditModal({ item, onSave, onClose, isNew = false }: Props) {
         </div>
 
         <div className="modal-body">
-          {/* Name */}
+          {/* Name — always shown */}
           <div className="form-field">
             <label className="form-label">Item Name</label>
             <input
               className="form-input"
               value={draft.name}
+              placeholder="e.g. Samsung 65″ TV"
               onChange={e => patch('name', e.target.value)}
+              autoFocus
             />
           </div>
 
-          {/* Category + Condition */}
-          <div className="form-row">
-            <div className="form-field">
-              <label className="form-label">Category</label>
-              <input
-                className="form-input"
-                list="category-options"
-                value={draft.category}
-                onChange={e => patch('category', e.target.value)}
-              />
-              <datalist id="category-options">
-                {CATEGORIES.map(c => <option key={c} value={c} />)}
-              </datalist>
-            </div>
-            <div className="form-field">
-              <label className="form-label">Condition</label>
-              <select
-                className="form-input"
-                value={draft.condition}
-                onChange={e => patch('condition', e.target.value as DetectedItem['condition'])}
-              >
-                <option value="excellent">Excellent</option>
-                <option value="good">Good</option>
-                <option value="fair">Fair</option>
-                <option value="poor">Poor</option>
-              </select>
-            </div>
+          {/* Value — always shown */}
+          <div className="form-field">
+            <label className="form-label">Value (AUD)</label>
+            <input
+              className="form-input"
+              type="number"
+              min="0"
+              step="1"
+              value={draft.estimatedValue}
+              onChange={e => patch('estimatedValue', Math.max(0, Number(e.target.value)))}
+            />
           </div>
 
-          {/* Value + Quantity */}
-          <div className="form-row">
-            <div className="form-field">
-              <label className="form-label">Value (AUD)</label>
-              <input
-                className="form-input"
-                type="number"
-                min="0"
-                step="1"
-                value={draft.estimatedValue}
-                onChange={e => patch('estimatedValue', Math.max(0, Number(e.target.value)))}
-              />
+          {/* Category + Condition — conditional */}
+          {(formFields.category || formFields.condition) && (
+            <div className="form-row">
+              {formFields.category && (
+                <div className="form-field">
+                  <label className="form-label">Category</label>
+                  <input
+                    className="form-input"
+                    list="category-options"
+                    value={draft.category}
+                    onChange={e => patch('category', e.target.value)}
+                  />
+                  <datalist id="category-options">
+                    {categories.map(c => <option key={c} value={c} />)}
+                  </datalist>
+                </div>
+              )}
+              {formFields.condition && (
+                <div className="form-field">
+                  <label className="form-label">Condition</label>
+                  <select
+                    className="form-input"
+                    value={draft.condition}
+                    onChange={e => patch('condition', e.target.value as DetectedItem['condition'])}
+                  >
+                    <option value="excellent">Excellent</option>
+                    <option value="good">Good</option>
+                    <option value="fair">Fair</option>
+                    <option value="poor">Poor</option>
+                  </select>
+                </div>
+              )}
             </div>
+          )}
+
+          {/* Quantity — conditional */}
+          {formFields.quantity && (
             <div className="form-field">
               <label className="form-label">Quantity</label>
               <input
@@ -113,81 +122,82 @@ export function ItemEditModal({ item, onSave, onClose, isNew = false }: Props) {
                 onChange={e => patch('quantity', Math.max(1, Math.round(Number(e.target.value))))}
               />
             </div>
-          </div>
+          )}
 
-          {/* Notes */}
-          <div className="form-field">
-            <label className="form-label">Notes</label>
-            <textarea
-              className="form-input form-textarea"
-              value={draft.notes ?? ''}
-              onChange={e => patch('notes', e.target.value || undefined)}
-              rows={2}
-            />
-          </div>
-
-          {/* Photos */}
-          <div className="form-field">
-            <label className="form-label">
-              Photos {draft.photos?.length ? `(${draft.photos.length})` : ''}
-            </label>
-
-            {(draft.photos?.length ?? 0) > 0 && (
-              <div className="photo-grid">
-                {draft.photos!.map((src, i) => (
-                  <div key={i} className="photo-thumb">
-                    <img src={src} alt={`Photo ${i + 1}`} />
-                    <button
-                      className="photo-remove"
-                      type="button"
-                      onClick={() =>
-                        setDraft(prev => ({
-                          ...prev,
-                          photos: prev.photos?.filter((_, idx) => idx !== i),
-                        }))
-                      }
-                    >✕</button>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            <div className="photo-actions">
-              <button
-                type="button"
-                className="btn-ghost"
-                onClick={() => libraryRef.current?.click()}
-              >
-                📁 Add from Library
-              </button>
-              <button
-                type="button"
-                className="btn-ghost"
-                onClick={() => cameraRef.current?.click()}
-              >
-                📷 Take Photo
-              </button>
+          {/* Notes — conditional */}
+          {formFields.notes && (
+            <div className="form-field">
+              <label className="form-label">Notes</label>
+              <textarea
+                className="form-input form-textarea"
+                value={draft.notes ?? ''}
+                onChange={e => patch('notes', e.target.value || undefined)}
+                rows={2}
+                placeholder="e.g. Purchased 2022, model XYZ"
+              />
             </div>
+          )}
 
-            {/* hidden inputs */}
-            <input
-              ref={libraryRef}
-              type="file"
-              accept="image/*"
-              multiple
-              style={{ display: 'none' }}
-              onChange={e => { handleFiles(e.target.files); e.target.value = '' }}
-            />
-            <input
-              ref={cameraRef}
-              type="file"
-              accept="image/*"
-              capture="environment"
-              multiple
-              style={{ display: 'none' }}
-              onChange={e => { handleFiles(e.target.files); e.target.value = '' }}
-            />
-          </div>
+          {/* Custom fields */}
+          {customFields.map(field => (
+            <div key={field.id} className="form-field">
+              <label className="form-label">{field.label}</label>
+              <input
+                className="form-input"
+                type={field.type}
+                min={field.type === 'number' ? 0 : undefined}
+                placeholder={field.placeholder}
+                value={draft.customData?.[field.id] ?? ''}
+                onChange={e => setDraft(prev => ({
+                  ...prev,
+                  customData: { ...prev.customData, [field.id]: field.type === 'number' ? Number(e.target.value) : e.target.value }
+                }))}
+              />
+            </div>
+          ))}
+
+          {/* Photos — conditional */}
+          {formFields.photos && (
+            <div className="form-field">
+              <label className="form-label">
+                Photos {draft.photos?.length ? `(${draft.photos.length})` : ''}
+              </label>
+
+              {(draft.photos?.length ?? 0) > 0 && (
+                <div className="photo-grid">
+                  {draft.photos!.map((src, i) => (
+                    <div key={i} className="photo-thumb">
+                      <img src={src} alt={`Photo ${i + 1}`} />
+                      <button
+                        className="photo-remove"
+                        type="button"
+                        onClick={() =>
+                          setDraft(prev => ({
+                            ...prev,
+                            photos: prev.photos?.filter((_, idx) => idx !== i),
+                          }))
+                        }
+                      >✕</button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div className="photo-actions">
+                <button type="button" className="btn-ghost" onClick={() => libraryRef.current?.click()}>
+                  📁 Add from Library
+                </button>
+                <button type="button" className="btn-ghost" onClick={() => cameraRef.current?.click()}>
+                  📷 Take Photo
+                </button>
+              </div>
+
+              <input ref={libraryRef} type="file" accept="image/*" multiple style={{ display: 'none' }}
+                onChange={e => { handleFiles(e.target.files); e.target.value = '' }} />
+              <input ref={cameraRef} type="file" accept="image/*" capture="environment" multiple style={{ display: 'none' }}
+                onChange={e => { handleFiles(e.target.files); e.target.value = '' }} />
+            </div>
+          )}
         </div>
 
         <div className="modal-footer">

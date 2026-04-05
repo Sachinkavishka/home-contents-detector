@@ -916,3 +916,284 @@ select.form-input option { background: #0f1623; }
 .photo-remove:hover { background: var(--red); }
 
 .photo-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
+
+/* ── Header top row ────────────────────────────────────────── */
+.header-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.btn-settings {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid var(--border-bright);
+  color: var(--text-muted);
+  font-size: 18px;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+.btn-settings:hover {
+  background: rgba(99,102,241,0.15);
+  border-color: var(--accent);
+  color: var(--accent);
+  transform: rotate(30deg);
+}
+
+/* ── Settings Drawer ───────────────────────────────────────── */
+.settings-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(4px);
+  z-index: 1100;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.settings-panel {
+  background: #0a0f1e;
+  border-left: 1px solid var(--border-bright);
+  width: 100%;
+  max-width: 420px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  box-shadow: -24px 0 64px rgba(0,0,0,0.6);
+  animation: slideInRight 0.25s cubic-bezier(0.22,1,0.36,1);
+}
+@keyframes slideInRight {
+  from { transform: translateX(100%); opacity: 0; }
+  to   { transform: translateX(0);    opacity: 1; }
+}
+
+.settings-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 22px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  background: rgba(99,102,241,0.06);
+}
+
+.settings-title {
+  font-size: 17px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  letter-spacing: -0.2px;
+}
+.settings-title-icon {
+  font-size: 20px;
+  opacity: 0.8;
+}
+
+.settings-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+/* ── Settings Sections ─────────────────────────────────────── */
+.settings-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.settings-section-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--accent);
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(99,102,241,0.2);
+}
+
+.settings-section-hint {
+  font-size: 12.5px;
+  color: var(--text-muted);
+  line-height: 1.5;
+  margin-top: -4px;
+}
+
+/* ── Toggle switches ───────────────────────────────────────── */
+.settings-toggle-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.settings-toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--border);
+  transition: background 0.15s;
+}
+.settings-toggle-row:hover { background: rgba(255,255,255,0.05); }
+.settings-toggle-locked { opacity: 0.55; cursor: not-allowed; }
+
+.settings-toggle-name {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.settings-required-badge {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+  background: rgba(255,255,255,0.06);
+  border: 1px solid var(--border);
+  border-radius: 99px;
+  padding: 2px 8px;
+}
+
+/* Toggle pill */
+.settings-toggle {
+  width: 42px;
+  height: 24px;
+  border-radius: 99px;
+  border: none;
+  cursor: pointer;
+  position: relative;
+  transition: background 0.2s;
+  flex-shrink: 0;
+}
+.settings-toggle.on  { background: linear-gradient(135deg, var(--accent), var(--accent2)); }
+.settings-toggle.off { background: rgba(255,255,255,0.12); }
+
+.settings-toggle-knob {
+  position: absolute;
+  top: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #fff;
+  transition: left 0.2s cubic-bezier(0.34,1.56,0.64,1);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.4);
+}
+.settings-toggle.on  .settings-toggle-knob { left: 21px; }
+.settings-toggle.off .settings-toggle-knob { left: 3px; }
+
+/* ── Custom fields list ────────────────────────────────────── */
+.settings-custom-field-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.settings-custom-field-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.settings-custom-field-input { flex: 1; }
+.settings-custom-field-type { width: 90px; flex-shrink: 0; }
+
+/* ── Add row ───────────────────────────────────────────────── */
+.settings-add-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.settings-type-select { width: 90px; flex-shrink: 0; }
+.settings-add-btn { white-space: nowrap; flex-shrink: 0; }
+
+/* ── Categories list ───────────────────────────────────────── */
+.settings-category-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.settings-category-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  border-radius: 8px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--border);
+}
+
+.settings-category-order {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.settings-order-btn {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  font-size: 10px;
+  cursor: pointer;
+  padding: 1px 4px;
+  line-height: 1;
+  border-radius: 3px;
+  transition: color 0.12s;
+}
+.settings-order-btn:hover:not(:disabled) { color: var(--accent); }
+.settings-order-btn:disabled { opacity: 0.25; cursor: default; }
+
+.settings-category-name {
+  flex: 1;
+  font-size: 13.5px;
+}
+
+/* ── Icon buttons ──────────────────────────────────────────── */
+.settings-icon-btn {
+  background: none;
+  border: none;
+  font-size: 13px;
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 6px;
+  transition: background 0.15s, color 0.15s;
+  flex-shrink: 0;
+  color: var(--text-muted);
+}
+.settings-icon-btn-delete:hover { background: var(--red-dim); color: var(--red); }
+
+/* ── Defaults grid ─────────────────────────────────────────── */
+.settings-defaults-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+/* ── Reset button ──────────────────────────────────────────── */
+.settings-reset-btn {
+  background: none;
+  border: 1px solid rgba(244,63,94,0.25);
+  border-radius: 10px;
+  color: var(--red);
+  font-size: 13px;
+  padding: 10px;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.2s;
+  font-family: inherit;
+  margin-top: auto;
+}
+.settings-reset-btn:hover { background: var(--red-dim); border-color: rgba(244,63,94,0.5); }

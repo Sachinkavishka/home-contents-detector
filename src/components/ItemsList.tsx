@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react'
-import type { DetectedItem, ScanResult } from '../types'
+import type { DetectedItem, ScanResult, AppSettings } from '../types'
+import { DEFAULT_SETTINGS } from '../types'
 import { exportToExcel } from '../utils/exportExcel'
 import { ItemEditModal } from './ItemEditModal'
 
@@ -13,6 +14,7 @@ interface Props {
   onMergeInto?: (targetIndex: number) => void
   onDeleteRoom?: () => void
   onScanAnotherAngle?: () => void
+  settings?: AppSettings
 }
 
 const CONDITION_BADGE: Record<string, string> = {
@@ -39,7 +41,7 @@ function fmt(value: number) {
   return new Intl.NumberFormat('en-AU', { style: 'currency', currency: 'AUD', maximumFractionDigits: 0 }).format(value)
 }
 
-export function ItemsList({ result, onReset, resetLabel = 'Scan Another Photo', onItemsChange, allRooms, currentRoomIndex, onMergeInto, onDeleteRoom, onScanAnotherAngle }: Props) {
+export function ItemsList({ result, onReset, resetLabel = 'Scan Another Photo', onItemsChange, allRooms, currentRoomIndex, onMergeInto, onDeleteRoom, onScanAnotherAngle, settings = DEFAULT_SETTINGS }: Props) {
   const [items, setItems] = useState<DetectedItem[]>(() => result.items)
   const [selected, setSelected] = useState<Set<string>>(
     () => new Set(result.items.map((i) => i.id)),
@@ -77,12 +79,13 @@ export function ItemsList({ result, onReset, resetLabel = 'Scan Another Photo', 
   const blankItem = (): DetectedItem => ({
     id: `manual-${Date.now()}`,
     name: '',
-    category: 'Other',
-    condition: 'good',
+    category: settings.categories[0] ?? 'Other',
+    condition: settings.defaultCondition,
     estimatedValue: 0,
-    quantity: 1,
+    quantity: settings.defaultQuantity,
     notes: '',
     photos: [],
+    customData: {},
   })
 
   function deleteItem(id: string) {
@@ -140,6 +143,7 @@ export function ItemsList({ result, onReset, resetLabel = 'Scan Another Photo', 
           item={editingItem}
           onSave={saveEdit}
           onClose={() => setEditingId(null)}
+          settings={settings}
         />
       )}
 
@@ -148,6 +152,7 @@ export function ItemsList({ result, onReset, resetLabel = 'Scan Another Photo', 
           item={blankItem()}
           onSave={saveNewItem}
           onClose={() => setAddingItem(false)}
+          settings={settings}
           isNew
         />
       )}

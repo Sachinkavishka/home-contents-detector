@@ -1,13 +1,17 @@
 import { useState, useCallback } from 'react'
 import { ImageUpload } from './components/ImageUpload'
 import { ItemsList } from './components/ItemsList'
+import { SettingsPanel } from './components/SettingsPanel'
 import { ClaudeDataSource, DemoDataSource } from './datasources'
 import type { DetectedItem, ScanResult } from './types'
 import { exportAllRoomsToExcel } from './utils/exportExcel'
+import { useSettings } from './hooks/useSettings'
 
 type Phase = 'upload' | 'scanning' | 'results' | 'error'
 
 export default function App() {
+  const { settings, updateSettings, resetSettings } = useSettings()
+  const [settingsOpen, setSettingsOpen] = useState(false)
   const [demoMode, setDemoMode] = useState(false)
   const [phase, setPhase] = useState<Phase>('upload')
   const [error, setError] = useState<string | null>(null)
@@ -143,11 +147,25 @@ export default function App() {
 
   return (
     <div className="app">
+      {settingsOpen && (
+        <SettingsPanel
+          settings={settings}
+          onUpdate={updateSettings}
+          onReset={resetSettings}
+          onClose={() => setSettingsOpen(false)}
+        />
+      )}
+
       <header className="app-header">
         <div className="header-inner">
-          <div className="logo">
-            <span className="logo-icon">🏠</span>
-            <span className="logo-text">Home Contents Detector</span>
+          <div className="header-top">
+            <div className="logo">
+              <span className="logo-icon">🏠</span>
+              <span className="logo-text">Home Contents Detector</span>
+            </div>
+            <button className="btn-settings" onClick={() => setSettingsOpen(true)} title="Settings">
+              ⚙
+            </button>
           </div>
           <p className="tagline">
             Photograph any room — AI identifies everything and estimates replacement value
@@ -309,6 +327,7 @@ export default function App() {
             onMergeInto={(targetIndex) => mergeRooms(viewingRoom, targetIndex)}
             onDeleteRoom={completedScans.length > 1 ? () => deleteRoom(viewingRoom) : undefined}
             onScanAnotherAngle={() => scanAnotherAngle(viewingRoom)}
+            settings={settings}
           />
         )}
       </main>
