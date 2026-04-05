@@ -5,6 +5,7 @@ interface Props {
   item: DetectedItem
   onSave: (updated: DetectedItem) => void
   onClose: () => void
+  isNew?: boolean
 }
 
 const CATEGORIES = [
@@ -21,7 +22,7 @@ function fileToDataUrl(file: File): Promise<string> {
   })
 }
 
-export function ItemEditModal({ item, onSave, onClose }: Props) {
+export function ItemEditModal({ item, onSave, onClose, isNew = false }: Props) {
   const [draft, setDraft] = useState<DetectedItem>({
     ...item,
     photos: item.photos ? [...item.photos] : [],
@@ -44,7 +45,7 @@ export function ItemEditModal({ item, onSave, onClose }: Props) {
       <div className="modal" onMouseDown={e => e.stopPropagation()}>
 
         <div className="modal-header">
-          <h2 className="modal-title">Edit Item</h2>
+          <h2 className="modal-title">{isNew ? 'Add Item Manually' : 'Edit Item'}</h2>
           <button className="modal-close-btn" onClick={onClose}>✕</button>
         </div>
 
@@ -191,7 +192,13 @@ export function ItemEditModal({ item, onSave, onClose }: Props) {
 
         <div className="modal-footer">
           <button className="btn-ghost" onClick={onClose}>Cancel</button>
-          <button className="btn-primary" onClick={() => onSave(draft)}>Save Changes</button>
+          <button
+            className="btn-primary"
+            disabled={!draft.name.trim()}
+            onClick={() => onSave(draft)}
+          >
+            {isNew ? 'Add Item' : 'Save Changes'}
+          </button>
         </div>
 
       </div>

@@ -45,6 +45,7 @@ export function ItemsList({ result, onReset, resetLabel = 'Scan Another Photo', 
     () => new Set(result.items.map((i) => i.id)),
   )
   const [editingId, setEditingId] = useState<string | null>(null)
+  const [addingItem, setAddingItem] = useState(false)
   const otherRooms = allRooms?.filter(r => r.index !== currentRoomIndex) ?? []
   const [mergeTarget, setMergeTarget] = useState<number>(() => otherRooms[0]?.index ?? 0)
 
@@ -62,6 +63,27 @@ export function ItemsList({ result, onReset, resetLabel = 'Scan Another Photo', 
     })
     setEditingId(null)
   }
+
+  function saveNewItem(newItem: DetectedItem) {
+    setItems(prev => {
+      const next = [...prev, newItem]
+      onItemsChange?.(next)
+      return next
+    })
+    setSelected(prev => new Set([...prev, newItem.id]))
+    setAddingItem(false)
+  }
+
+  const blankItem = (): DetectedItem => ({
+    id: `manual-${Date.now()}`,
+    name: '',
+    category: 'Other',
+    condition: 'good',
+    estimatedValue: 0,
+    quantity: 1,
+    notes: '',
+    photos: [],
+  })
 
   function deleteItem(id: string) {
     setSelected(prev => { const next = new Set(prev); next.delete(id); return next })
@@ -118,6 +140,15 @@ export function ItemsList({ result, onReset, resetLabel = 'Scan Another Photo', 
           item={editingItem}
           onSave={saveEdit}
           onClose={() => setEditingId(null)}
+        />
+      )}
+
+      {addingItem && (
+        <ItemEditModal
+          item={blankItem()}
+          onSave={saveNewItem}
+          onClose={() => setAddingItem(false)}
+          isNew
         />
       )}
 
@@ -217,6 +248,12 @@ export function ItemsList({ result, onReset, resetLabel = 'Scan Another Photo', 
 
         {/* ── Items ── */}
         <main className="results-main">
+          <div className="add-item-bar">
+            <button className="btn-add-item" onClick={() => setAddingItem(true)}>
+              ＋ Add Item Manually
+            </button>
+          </div>
+
           {Object.entries(byCategory)
             .sort(([, a], [, b]) =>
               b.reduce((s, i) => s + i.estimatedValue * i.quantity, 0) -
