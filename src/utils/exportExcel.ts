@@ -317,24 +317,36 @@ export async function exportAllRoomsToExcel(scans: ScanResult[]) {
   allTotal.height = 24
 
   // ── One sheet per room ─────────────────────────────────────
+  const IMG_SIZE = 120
+
   for (const scan of scans) {
     const sheetName = scan.roomType.slice(0, 31) // Excel sheet name max 31 chars
     const wsRoom = wb.addWorksheet(sheetName)
-    wsRoom.columns = [
+    const hasPhotos = scan.items.some(i => i.photos && i.photos.length > 0)
+
+    const roomCols: { header: string; key: string; width: number }[] = [
       { header: 'Item Name',         key: 'name',     width: 34 },
       { header: 'Category',          key: 'category', width: 18 },
       { header: 'Condition',         key: 'condition',width: 12 },
       { header: 'Qty',               key: 'qty',      width: 6  },
       { header: 'Unit Value (AUD)',   key: 'unitVal',  width: 18 },
-      { header: 'Total Value (AUD)',  key: 'totalVal', width: 18 },
+      { header: 'Total Value (AUD)', key: 'totalVal', width: 18 },
       { header: 'Notes',             key: 'notes',    width: 28 },
     ]
+    if (hasPhotos) {
+      roomCols.push({ header: 'Photo 1', key: 'p1', width: 22 })
+      roomCols.push({ header: 'Photo 2', key: 'p2', width: 22 })
+      roomCols.push({ header: 'Photo 3', key: 'p3', width: 22 })
+    }
+
+    wsRoom.columns = roomCols
     wsRoom.getRow(1).eachCell(c => { c.fill = headerFill; c.font = headerFont; c.border = headerBorder; c.alignment = { vertical: 'middle', horizontal: 'center' } })
     wsRoom.getRow(1).height = 28
     wsRoom.views = [{ state: 'frozen', ySplit: 1 }]
 
     const roomTotal = scan.items.reduce((s, it) => s + it.estimatedValue * it.quantity, 0)
-    scan.items.forEach((item, idx) => {
+
+    for (const [idx, item] of scan.items.entries()) {
       const r = wsRoom.addRow({
         name:      item.name,
         category:  item.category,
@@ -348,8 +360,33 @@ export async function exportAllRoomsToExcel(scans: ScanResult[]) {
       r.getCell('totalVal').numFmt = '"$"#,##0.00'
       const f: ExcelJS.Fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: idx % 2 === 0 ? 'FF1A1D27' : 'FF22263A' } }
       r.eachCell(c => { c.fill = f; c.font = { color: { argb: 'FFE8EAF0' }, size: 11 }; c.alignment = { vertical: 'middle' } })
-      r.height = 22
-    })
+
+      if (hasPhotos && item.photos && item.photos.length > 0) {
+        r.height = IMG_SIZE * 0.75
+        const photoCols = ['p1', 'p2', 'p3']
+        item.photos.slice(0, 3).forEach((dataUrl, pi) => {
+          try {
+            const { base64, ext } = parseDataUrl(dataUrl)
+            const imgId = wb.addImage({ base64, extension: ext })
+            const colLetter = wsRoom.getColumn(photoCols[pi]).letter
+            const colIndex = wsRoom.getColumn(photoCols[pi]).number - 1
+            wsRoom.addImage(imgId, {
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              tl: { col: colIndex, row: r.number - 1 } as any,
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              br: { col: colIndex + 1, row: r.number } as any,
+              editAs: 'oneCell',
+            })
+            r.getCell(colLetter).value = null
+          } catch {
+            // skip bad image
+          }
+        })
+      } else {
+        r.height = 22
+      }
+    }
+
     const rTotal = wsRoom.addRow({ name: 'TOTAL', category: '', condition: '', qty: scan.items.reduce((s, it) => s + it.quantity, 0), unitVal: 0, totalVal: roomTotal, notes: '' })
     rTotal.getCell('totalVal').numFmt = '"$"#,##0.00'
     rTotal.eachCell(c => { c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF5C6BFF' } }; c.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 11 } })
