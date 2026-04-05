@@ -115,6 +115,21 @@ body {
 }
 .rooms-totals-bar strong { color: var(--accent); }
 
+/* Rename chip */
+.room-chip-wrapper { display: flex; align-items: center; gap: 2px; }
+.room-chip-rename {
+  background: none; border: none; cursor: pointer;
+  color: var(--text-muted); font-size: 12px; padding: 2px 4px;
+  border-radius: 4px; opacity: 0; transition: opacity 0.15s;
+}
+.room-chip-wrapper:hover .room-chip-rename { opacity: 1; }
+.room-chip-rename:hover { color: var(--accent); }
+.room-chip-input {
+  background: var(--bg); border: 1px solid var(--accent);
+  border-radius: 20px; color: var(--text); font-size: 13px;
+  padding: 4px 12px; outline: none; width: 130px;
+}
+
 /* ── API Key Banner ───────────────────────────────────────── */
 .api-key-banner {
   background: var(--surface);
@@ -161,6 +176,22 @@ body {
 .btn-primary:hover:not(:disabled) { background: var(--accent-hover); }
 .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
 .btn-primary.full-width { width: 100%; padding: 12px; font-size: 15px; }
+
+.btn-scan-angle {
+  display: block;
+  width: 100%;
+  padding: 11px 12px;
+  background: transparent;
+  border: 1.5px dashed var(--accent);
+  color: var(--accent);
+  border-radius: var(--radius);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  text-align: center;
+  transition: background 0.15s, color 0.15s;
+}
+.btn-scan-angle:hover { background: rgba(99,102,241,0.1); }
 
 .btn-ghost {
   background: transparent;
@@ -356,6 +387,17 @@ body {
     flex-shrink: 0;
   }
   .item-mobile-edit:hover { color: var(--accent); }
+  .item-mobile-delete {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 13px;
+    cursor: pointer;
+    padding: 2px 4px;
+    border-radius: 4px;
+    flex-shrink: 0;
+  }
+  .item-mobile-delete:hover { color: var(--red); }
 
   /* Category heading */
   .category-heading { padding: 12px 12px; font-size: 14px; }
@@ -474,7 +516,7 @@ body {
 
 .items-header {
   display: grid;
-  grid-template-columns: 28px 1fr 100px 50px 130px 32px;
+  grid-template-columns: 28px 1fr 100px 50px 130px 52px;
   gap: 8px;
   padding: 8px 18px;
   font-size: 12px;
@@ -486,7 +528,7 @@ body {
 
 .item-row {
   display: grid;
-  grid-template-columns: 28px 1fr 100px 50px 130px 32px;
+  grid-template-columns: 28px 1fr 100px 50px 130px 52px;
   gap: 8px;
   padding: 12px 18px;
   align-items: start;
@@ -525,20 +567,51 @@ body {
 /* ── Item edit button & photo badge ──────────────────────── */
 .item-edit-col { display: flex; align-items: flex-start; padding-top: 2px; }
 
-.btn-edit-item {
+.btn-edit-item, .btn-delete-item {
   background: none;
   border: none;
-  color: var(--text-muted);
-  font-size: 14px;
+  font-size: 13px;
   cursor: pointer;
-  padding: 2px 5px;
+  padding: 2px 4px;
   border-radius: 4px;
   opacity: 0;
   transition: opacity 0.15s, color 0.15s;
   line-height: 1;
+  display: block;
 }
-.item-row:hover .btn-edit-item { opacity: 1; }
+.btn-edit-item { color: var(--text-muted); }
+.btn-delete-item { color: var(--text-muted); }
+.item-row:hover .btn-edit-item,
+.item-row:hover .btn-delete-item { opacity: 1; }
 .btn-edit-item:hover { color: var(--accent); background: var(--surface2); }
+.btn-delete-item:hover { color: var(--red); background: rgba(231,76,60,0.1); }
+
+/* Merge panel */
+.merge-panel {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px;
+}
+.merge-title { font-size: 12px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 8px; }
+.merge-row { display: flex; gap: 8px; align-items: center; }
+.merge-select { flex: 1; font-size: 13px; padding: 6px 10px; }
+.merge-btn { white-space: nowrap; font-size: 13px; padding: 6px 12px; }
+
+/* Delete room button */
+.btn-delete-room {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--red);
+  font-size: 13px;
+  padding: 8px 12px;
+  cursor: pointer;
+  width: 100%;
+  text-align: center;
+  transition: background 0.15s;
+}
+.btn-delete-room:hover { background: rgba(231,76,60,0.1); }
 
 .item-photo-strip {
   display: flex;

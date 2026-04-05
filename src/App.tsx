@@ -12,34 +12,58 @@ export default function App() {
   const [phase, setPhase] = useState<Phase>('upload')
   const [error, setError] = useState<string | null>(null)
   const [preview, setPreview] = useState<string | null>(null)
-
-  // All completed scans — edits are kept here
   const [completedScans, setCompletedScans] = useState<ScanResult[]>([])
   const [viewingRoom, setViewingRoom] = useState(0)
+  const [mergeAfterScanIndex, setMergeAfterScanIndex] = useState<number | null>(null)
+
+  // Rename chip inline edit state
+  const [editingChipIndex, setEditingChipIndex] = useState<number | null>(null)
+  const [chipEditValue, setChipEditValue] = useState('')
 
   const handleImage = useCallback(
     async (base64: string, mimeType: string, previewUrl: string) => {
       setPreview(previewUrl)
       setPhase('scanning')
-
       try {
         const source = demoMode ? new DemoDataSource() : new ClaudeDataSource()
         const result = await source.analyseImage(base64, mimeType, previewUrl)
-        setCompletedScans(prev => {
-          const updated = [...prev, result]
-          setViewingRoom(updated.length - 1)
-          return updated
-        })
+        if (mergeAfterScanIndex !== null) {
+          // Auto-merge new items into the existing room
+          const targetIndex = mergeAfterScanIndex
+          setMergeAfterScanIndex(null)
+          setCompletedScans(prev =>
+            prev.map((scan, i) => {
+              if (i !== targetIndex) return scan
+              const mergedItems = [...scan.items, ...result.items]
+              return { ...scan, items: mergedItems, totalValue: mergedItems.reduce((s, it) => s + it.estimatedValue * it.quantity, 0) }
+            })
+          )
+          setViewingRoom(targetIndex)
+        } else {
+          setCompletedScans(prev => {
+            const updated = [...prev, result]
+            setViewingRoom(updated.length - 1)
+            return updated
+          })
+        }
         setPhase('results')
       } catch (err) {
+        setMergeAfterScanIndex(null)
         setError(err instanceof Error ? err.message : 'Unknown error')
         setPhase('error')
       }
     },
-    [demoMode],
+    [demoMode, mergeAfterScanIndex],
   )
 
   const addAnotherRoom = useCallback(() => {
+    setMergeAfterScanIndex(null)
+    setPreview(null)
+    setPhase('upload')
+  }, [])
+
+  const scanAnotherAngle = useCallback((roomIndex: number) => {
+    setMergeAfterScanIndex(roomIndex)
     setPreview(null)
     setPhase('upload')
   }, [])
@@ -51,7 +75,27 @@ export default function App() {
     setViewingRoom(0)
   }, [])
 
-  // Propagate item edits back into completedScans
+  const switchRoom = useCallback((i: number) => {
+    setViewingRoom(i)
+    setPhase('results')
+    setEditingChipIndex(null)
+  }, [])
+
+  // ── Rename room ──────────────────────────────────────────────
+  const startRenameChip = (i: number) => {
+    setChipEditValue(completedScans[i].roomType)
+    setEditingChipIndex(i)
+  }
+
+  const commitRename = (i: number) => {
+    const name = chipEditValue.trim()
+    if (name) {
+      setCompletedScans(prev => prev.map((s, idx) => idx === i ? { ...s, roomType: name } : s))
+    }
+    setEditingChipIndex(null)
+  }
+
+  // ── Update items (from ItemsList edits / deletes) ────────────
   const updateRoomItems = useCallback((roomIndex: number, items: DetectedItem[]) => {
     setCompletedScans(prev =>
       prev.map((scan, i) =>
@@ -62,13 +106,39 @@ export default function App() {
     )
   }, [])
 
-  const switchRoom = useCallback((i: number) => {
-    setViewingRoom(i)
+  // ── Merge room fromIndex into toIndex ────────────────────────
+  const mergeRooms = useCallback((fromIndex: number, toIndex: number) => {
+    setCompletedScans(prev => {
+      const mergedItems = [...prev[toIndex].items, ...prev[fromIndex].items]
+      const updated = prev
+        .map((scan, i) =>
+          i === toIndex
+            ? { ...scan, items: mergedItems, totalValue: mergedItems.reduce((s, it) => s + it.estimatedValue * it.quantity, 0) }
+            : scan,
+        )
+        .filter((_, i) => i !== fromIndex)
+      setViewingRoom(toIndex > fromIndex ? toIndex - 1 : toIndex)
+      return updated
+    })
     setPhase('results')
   }, [])
 
-  const totalAllRooms = completedScans.reduce((s, scan) =>
-    s + scan.items.reduce((r, it) => r + it.estimatedValue * it.quantity, 0), 0
+  // ── Delete entire room ───────────────────────────────────────
+  const deleteRoom = useCallback((roomIndex: number) => {
+    setCompletedScans(prev => {
+      const updated = prev.filter((_, i) => i !== roomIndex)
+      if (updated.length === 0) {
+        setPhase('upload')
+        setViewingRoom(0)
+      } else {
+        setViewingRoom(Math.min(roomIndex, updated.length - 1))
+      }
+      return updated
+    })
+  }, [])
+
+  const grandTotal = completedScans.reduce(
+    (s, sc) => s + sc.items.reduce((r, it) => r + it.estimatedValue * it.quantity, 0), 0
   )
 
   return (
@@ -97,29 +167,52 @@ export default function App() {
         </div>
       )}
 
-      {/* Rooms navigation bar — shown once at least one scan is done */}
+      {/* ── Rooms bar ── */}
       {completedScans.length > 0 && (
         <div className="rooms-bar">
           <div className="rooms-bar-inner">
             <div className="rooms-chips">
               {completedScans.map((scan, i) => (
-                <button
-                  key={i}
-                  className={`room-chip ${viewingRoom === i && phase === 'results' ? 'active' : ''}`}
-                  onClick={() => switchRoom(i)}
-                >
-                  {scan.roomType}
-                </button>
+                <div key={i} className="room-chip-wrapper">
+                  {editingChipIndex === i ? (
+                    <input
+                      className="room-chip-input"
+                      value={chipEditValue}
+                      onChange={e => setChipEditValue(e.target.value)}
+                      onBlur={() => commitRename(i)}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter') commitRename(i)
+                        if (e.key === 'Escape') setEditingChipIndex(null)
+                      }}
+                      autoFocus
+                    />
+                  ) : (
+                    <button
+                      className={`room-chip ${viewingRoom === i && phase === 'results' ? 'active' : ''}`}
+                      onClick={() => switchRoom(i)}
+                    >
+                      {scan.roomType}
+                    </button>
+                  )}
+                  {/* Rename pencil — show on active chip */}
+                  {viewingRoom === i && phase === 'results' && editingChipIndex !== i && (
+                    <button
+                      className="room-chip-rename"
+                      title="Rename room"
+                      onClick={() => startRenameChip(i)}
+                    >✏</button>
+                  )}
+                </div>
               ))}
               {phase === 'upload' && (
-                <span className="room-chip room-chip-scanning">📷 Scanning new room…</span>
+                <span className="room-chip room-chip-scanning">📷 Scanning new area…</span>
               )}
             </div>
 
             <div className="rooms-bar-actions">
               {phase !== 'upload' && (
                 <button className="btn-ghost small" onClick={addAnotherRoom}>
-                  + Add Room
+                  + Add Area
                 </button>
               )}
               {completedScans.length > 1 && phase === 'results' && (
@@ -138,12 +231,12 @@ export default function App() {
 
           {completedScans.length > 1 && (
             <div className="rooms-totals-bar">
-              <span>{completedScans.length} rooms</span>
+              <span>{completedScans.length} areas</span>
               <span>·</span>
               <span>{completedScans.reduce((s, sc) => s + sc.items.length, 0)} items</span>
               <span>·</span>
               <strong>
-                {new Intl.NumberFormat('en-AU', { style: 'currency', currency: 'AUD', maximumFractionDigits: 0 }).format(totalAllRooms)} total
+                {new Intl.NumberFormat('en-AU', { style: 'currency', currency: 'AUD', maximumFractionDigits: 0 }).format(grandTotal)} total
               </strong>
             </div>
           )}
@@ -179,7 +272,9 @@ export default function App() {
             <p className="scanning-hint">
               {demoMode
                 ? 'Showing sample room contents'
-                : 'Claude is identifying items and looking up replacement values'}
+                : mergeAfterScanIndex !== null
+                  ? `Adding more items to ${completedScans[mergeAfterScanIndex]?.roomType ?? 'room'}…`
+                  : 'Claude is identifying items and looking up replacement values'}
             </p>
           </div>
         )}
@@ -204,9 +299,16 @@ export default function App() {
           <ItemsList
             key={viewingRoom}
             result={completedScans[viewingRoom]}
-            onReset={completedScans.length === 1 ? resetAll : addAnotherRoom}
-            resetLabel={completedScans.length === 1 ? 'Scan Another Photo' : '+ Add Another Room'}
+            onReset={addAnotherRoom}
+            resetLabel="+ Scan Another Area"
             onItemsChange={(items) => updateRoomItems(viewingRoom, items)}
+            allRooms={completedScans.length > 1
+              ? completedScans.map((s, i) => ({ name: s.roomType, index: i }))
+              : undefined}
+            currentRoomIndex={viewingRoom}
+            onMergeInto={(targetIndex) => mergeRooms(viewingRoom, targetIndex)}
+            onDeleteRoom={completedScans.length > 1 ? () => deleteRoom(viewingRoom) : undefined}
+            onScanAnotherAngle={() => scanAnotherAngle(viewingRoom)}
           />
         )}
       </main>
