@@ -162,8 +162,31 @@ export class ClaudeDataSource implements DataSource {
     }
 
     const raw = data.content.find((b) => b.type === 'text')?.text ?? ''
-    // Strip markdown code fences if Claude wraps the JSON in ```json ... ```
-    const text = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim()
+
+    // Robustly extract the JSON object from the response.
+    // Claude may wrap it in ```json ... ``` fences, add preamble text, or
+    // include trailing commentary — we find the first { ... } block that parses.
+    const extractJson = (str: string): string => {
+      // 1. Try stripping markdown code fences first
+      const fenceMatch = str.match(/```(?:json)?\s*([\s\S]*?)\s*```/i)
+      if (fenceMatch) return fenceMatch[1].trim()
+
+      // 2. Find the outermost { ... } block
+      const start = str.indexOf('{')
+      if (start === -1) throw new Error('No JSON object found in response')
+      let depth = 0
+      for (let i = start; i < str.length; i++) {
+        if (str[i] === '{') depth++
+        else if (str[i] === '}') {
+          depth--
+          if (depth === 0) return str.slice(start, i + 1)
+        }
+      }
+      throw new Error('Unterminated JSON object in response')
+    }
+
+    const text = extractJson(raw)
+
     const parsed = JSON.parse(text) as {
       roomType: string
       items: Array<{
