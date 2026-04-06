@@ -921,10 +921,12 @@ body {
 }
 .settings-toggle.on .settings-toggle-knob { transform: translateX(20px); }
 
-.settings-custom-field-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 4px; }
+.settings-custom-field-list { display: flex; flex-direction: column; gap: 12px; margin-bottom: 4px; }
+.settings-custom-field-block { display: flex; flex-direction: column; gap: 0; border: 1.5px solid var(--border-light); border-radius: var(--radius-sm); overflow: hidden; }
+.settings-custom-field-block .settings-custom-field-row { padding: 8px; background: var(--surface2); border-bottom: none; }
 .settings-custom-field-row { display: flex; gap: 8px; align-items: center; }
 .settings-custom-field-input { flex: 1; }
-.settings-custom-field-type { width: 90px; flex-shrink: 0; }
+.settings-custom-field-type { width: 138px; flex-shrink: 0; }
 .settings-icon-btn {
   display: flex; align-items: center; justify-content: center;
   width: 34px; height: 34px;
@@ -982,6 +984,92 @@ body {
   border-color: var(--red);
   color: var(--red);
 }
+
+/* ── Custom field option chips (Settings) ─────────────────── */
+.settings-new-field-block { display: flex; flex-direction: column; gap: 0; }
+.settings-options-area {
+  background: var(--accent-light);
+  border: 1.5px solid var(--accent-mid);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 10px;
+}
+.settings-options-area--new { margin-top: 10px; }
+.settings-options-label { font-size: 12px; font-weight: 600; color: var(--accent); }
+.settings-options-chips { display: flex; flex-wrap: wrap; gap: 6px; min-height: 26px; }
+.settings-options-empty { font-size: 12px; color: var(--text-muted); font-style: italic; }
+.option-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: var(--bg-white);
+  border: 1.5px solid var(--accent-mid);
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 500;
+  padding: 3px 8px 3px 10px;
+  border-radius: var(--radius-pill);
+}
+.option-chip-remove {
+  display: flex; align-items: center; justify-content: center;
+  width: 16px; height: 16px;
+  border-radius: 50%;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 0;
+  transition: all 0.1s;
+}
+.option-chip-remove:hover { background: var(--red-light); color: var(--red); }
+.settings-options-add-row { display: flex; gap: 8px; align-items: center; }
+.settings-options-input { flex: 1; font-size: 13px; padding: 6px 10px; }
+
+/* ── Choice group in item edit modal ──────────────────────── */
+.choice-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  background: var(--surface2);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+.choice-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  padding: 6px 10px;
+  border-radius: var(--radius-xs);
+  transition: background 0.1s;
+  font-size: 14px;
+  color: var(--text);
+}
+.choice-option:hover { background: var(--bg); }
+.choice-option input[type="radio"],
+.choice-option input[type="checkbox"] {
+  width: 16px; height: 16px;
+  accent-color: var(--accent);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.choice-option-label { flex: 1; font-weight: 500; }
+.choice-clear-btn {
+  align-self: flex-start;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 12px;
+  cursor: pointer;
+  text-decoration: underline;
+  padding: 2px 0;
+  font-family: inherit;
+}
+.choice-clear-btn:hover { color: var(--accent); }
 
 /* ── Toast ────────────────────────────────────────────────── */
 .toast {

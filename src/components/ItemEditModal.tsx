@@ -142,17 +142,109 @@ export function ItemEditModal({ item, onSave, onClose, isNew = false, settings =
           {customFields.map(field => (
             <div key={field.id} className="form-field">
               <label className="form-label">{field.label}</label>
-              <input
-                className="form-input"
-                type={field.type}
-                min={field.type === 'number' ? 0 : undefined}
-                placeholder={field.placeholder}
-                value={draft.customData?.[field.id] ?? ''}
-                onChange={e => setDraft(prev => ({
-                  ...prev,
-                  customData: { ...prev.customData, [field.id]: field.type === 'number' ? Number(e.target.value) : e.target.value }
-                }))}
-              />
+
+              {/* Plain text */}
+              {field.type === 'text' && (
+                <input
+                  className="form-input"
+                  type="text"
+                  placeholder={field.placeholder}
+                  value={(draft.customData?.[field.id] as string) ?? ''}
+                  onChange={e => setDraft(prev => ({
+                    ...prev,
+                    customData: { ...prev.customData, [field.id]: e.target.value },
+                  }))}
+                />
+              )}
+
+              {/* Multi-line text */}
+              {field.type === 'multi-text' && (
+                <textarea
+                  className="form-input form-textarea"
+                  rows={3}
+                  placeholder={field.placeholder ?? 'Enter text...'}
+                  value={(draft.customData?.[field.id] as string) ?? ''}
+                  onChange={e => setDraft(prev => ({
+                    ...prev,
+                    customData: { ...prev.customData, [field.id]: e.target.value },
+                  }))}
+                />
+              )}
+
+              {/* Number */}
+              {field.type === 'number' && (
+                <input
+                  className="form-input"
+                  type="number"
+                  min={0}
+                  placeholder={field.placeholder ?? '0'}
+                  value={(draft.customData?.[field.id] as number) ?? ''}
+                  onChange={e => setDraft(prev => ({
+                    ...prev,
+                    customData: { ...prev.customData, [field.id]: Number(e.target.value) },
+                  }))}
+                />
+              )}
+
+              {/* Single choice — radio buttons */}
+              {field.type === 'single-choice' && (
+                <div className="choice-group">
+                  {(field.options ?? []).map(opt => (
+                    <label key={opt} className="choice-option">
+                      <input
+                        type="radio"
+                        name={`cf-${field.id}`}
+                        value={opt}
+                        checked={(draft.customData?.[field.id] as string) === opt}
+                        onChange={() => setDraft(prev => ({
+                          ...prev,
+                          customData: { ...prev.customData, [field.id]: opt },
+                        }))}
+                      />
+                      <span className="choice-option-label">{opt}</span>
+                    </label>
+                  ))}
+                  {(draft.customData?.[field.id] as string) && (
+                    <button
+                      type="button"
+                      className="choice-clear-btn"
+                      onClick={() => setDraft(prev => ({
+                        ...prev,
+                        customData: { ...prev.customData, [field.id]: '' },
+                      }))}
+                    >Clear selection</button>
+                  )}
+                </div>
+              )}
+
+              {/* Multiple choice — checkboxes */}
+              {field.type === 'multi-choice' && (
+                <div className="choice-group">
+                  {(field.options ?? []).map(opt => {
+                    const selected = (draft.customData?.[field.id] as string[]) ?? []
+                    return (
+                      <label key={opt} className="choice-option">
+                        <input
+                          type="checkbox"
+                          value={opt}
+                          checked={selected.includes(opt)}
+                          onChange={e => {
+                            const cur = (draft.customData?.[field.id] as string[]) ?? []
+                            const next = e.target.checked
+                              ? [...cur, opt]
+                              : cur.filter(o => o !== opt)
+                            setDraft(prev => ({
+                              ...prev,
+                              customData: { ...prev.customData, [field.id]: next },
+                            }))
+                          }}
+                        />
+                        <span className="choice-option-label">{opt}</span>
+                      </label>
+                    )
+                  })}
+                </div>
+              )}
             </div>
           ))}
 

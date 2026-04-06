@@ -16,10 +16,28 @@ const FIELD_LABELS: Record<keyof AppSettings['formFields'], string> = {
   photos:    'Photos',
 }
 
+const FIELD_TYPE_LABELS: Record<CustomField['type'], string> = {
+  text:           'Text',
+  'multi-text':   'Multi-line Text',
+  number:         'Number',
+  'single-choice':'Single Choice',
+  'multi-choice': 'Multiple Choice',
+}
+
+const CHOICE_TYPES = ['single-choice', 'multi-choice'] as const
+function isChoiceType(t: CustomField['type']): t is 'single-choice' | 'multi-choice' {
+  return CHOICE_TYPES.includes(t as 'single-choice' | 'multi-choice')
+}
+
 export function SettingsPanel({ settings, onUpdate, onReset, onClose }: Props) {
   const [newCategory, setNewCategory] = useState('')
   const [newFieldLabel, setNewFieldLabel] = useState('')
-  const [newFieldType, setNewFieldType] = useState<'text' | 'number'>('text')
+  const [newFieldType, setNewFieldType] = useState<CustomField['type']>('text')
+  // Options for the "new field" being built
+  const [newFieldOptions, setNewFieldOptions] = useState<string[]>([])
+  const [newOptionInput, setNewOptionInput] = useState('')
+  // Per-field add-option inputs for existing choice fields
+  const [fieldOptionInputs, setFieldOptionInputs] = useState<Record<string, string>>({})
 
   // ── Form Fields ──────────────────────────────────────────────
   function toggleField(key: keyof AppSettings['formFields']) {
@@ -30,15 +48,19 @@ export function SettingsPanel({ settings, onUpdate, onReset, onClose }: Props) {
   function addCustomField() {
     const label = newFieldLabel.trim()
     if (!label) return
+    if (isChoiceType(newFieldType) && newFieldOptions.length === 0) return
     const field: CustomField = {
       id: `cf-${Date.now()}`,
       label,
       type: newFieldType,
       placeholder: newFieldType === 'number' ? '0' : '',
+      options: isChoiceType(newFieldType) ? [...newFieldOptions] : undefined,
     }
     onUpdate({ customFields: [...settings.customFields, field] })
     setNewFieldLabel('')
     setNewFieldType('text')
+    setNewFieldOptions([])
+    setNewOptionInput('')
   }
 
   function removeCustomField(id: string) {
@@ -46,7 +68,41 @@ export function SettingsPanel({ settings, onUpdate, onReset, onClose }: Props) {
   }
 
   function updateCustomField(id: string, patch: Partial<CustomField>) {
-    onUpdate({ customFields: settings.customFields.map(f => f.id === id ? { ...f, ...patch } : f) })
+    onUpdate({
+      customFields: settings.customFields.map(f =>
+        f.id === id ? { ...f, ...patch } : f
+      ),
+    })
+  }
+
+  // ── New-field option helpers ─────────────────────────────────
+  function addNewOption() {
+    const opt = newOptionInput.trim()
+    if (!opt || newFieldOptions.includes(opt)) return
+    setNewFieldOptions(prev => [...prev, opt])
+    setNewOptionInput('')
+  }
+
+  function removeNewOption(opt: string) {
+    setNewFieldOptions(prev => prev.filter(o => o !== opt))
+  }
+
+  // ── Existing-field option helpers ────────────────────────────
+  function addOptionToField(fieldId: string) {
+    const input = (fieldOptionInputs[fieldId] ?? '').trim()
+    if (!input) return
+    const field = settings.customFields.find(f => f.id === fieldId)
+    if (!field) return
+    const existing = field.options ?? []
+    if (existing.includes(input)) return
+    updateCustomField(fieldId, { options: [...existing, input] })
+    setFieldOptionInputs(prev => ({ ...prev, [fieldId]: '' }))
+  }
+
+  function removeOptionFromField(fieldId: string, option: string) {
+    const field = settings.customFields.find(f => f.id === fieldId)
+    if (!field) return
+    updateCustomField(fieldId, { options: (field.options ?? []).filter(o => o !== option) })
   }
 
   // ── Categories ───────────────────────────────────────────────
@@ -68,6 +124,9 @@ export function SettingsPanel({ settings, onUpdate, onReset, onClose }: Props) {
     ;[cats[index], cats[swap]] = [cats[swap], cats[index]]
     onUpdate({ categories: cats })
   }
+
+  const canAddNewField = newFieldLabel.trim() !== '' &&
+    (!isChoiceType(newFieldType) || newFieldOptions.length > 0)
 
   return (
     <div className="settings-backdrop" onMouseDown={onClose}>
@@ -94,18 +153,14 @@ export function SettingsPanel({ settings, onUpdate, onReset, onClose }: Props) {
             <div className="settings-section-label">Item Form Fields</div>
             <p className="settings-section-hint">Choose which fields appear when adding or editing an item.</p>
             <div className="settings-toggle-list">
-              {/* Name is always required */}
               <div className="settings-toggle-row settings-toggle-locked">
                 <span className="settings-toggle-name">Item Name</span>
                 <span className="settings-required-badge">Required</span>
               </div>
-
-              {/* Value is always required */}
               <div className="settings-toggle-row settings-toggle-locked">
                 <span className="settings-toggle-name">Value (AUD)</span>
                 <span className="settings-required-badge">Required</span>
               </div>
-
               {(Object.keys(FIELD_LABELS) as (keyof AppSettings['formFields'])[]).map(key => (
                 <div key={key} className="settings-toggle-row">
                   <span className="settings-toggle-name">{FIELD_LABELS[key]}</span>
@@ -124,61 +179,160 @@ export function SettingsPanel({ settings, onUpdate, onReset, onClose }: Props) {
           {/* ── Section: Custom Fields ── */}
           <section className="settings-section">
             <div className="settings-section-label">Custom Fields</div>
-            <p className="settings-section-hint">Add extra fields specific to your needs (e.g. Serial Number, Purchase Date).</p>
+            <p className="settings-section-hint">Add extra fields to the item form (e.g. Serial Number, Warranty, Purchase Store).</p>
 
+            {/* Existing fields */}
             {settings.customFields.length > 0 && (
               <div className="settings-custom-field-list">
                 {settings.customFields.map(field => (
-                  <div key={field.id} className="settings-custom-field-row">
-                    <input
-                      className="form-input settings-custom-field-input"
-                      value={field.label}
-                      onChange={e => updateCustomField(field.id, { label: e.target.value })}
-                      placeholder="Field label"
-                    />
-                    <select
-                      className="form-input settings-custom-field-type"
-                      value={field.type}
-                      onChange={e => updateCustomField(field.id, { type: e.target.value as 'text' | 'number' })}
-                    >
-                      <option value="text">Text</option>
-                      <option value="number">Number</option>
-                    </select>
-                    <button
-                      className="settings-icon-btn settings-icon-btn-delete"
-                      onClick={() => removeCustomField(field.id)}
-                      title="Remove field"
-                    >
-                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
-                      </svg>
-                    </button>
+                  <div key={field.id} className="settings-custom-field-block">
+                    {/* Field row */}
+                    <div className="settings-custom-field-row">
+                      <input
+                        className="form-input settings-custom-field-input"
+                        value={field.label}
+                        onChange={e => updateCustomField(field.id, { label: e.target.value })}
+                        placeholder="Field label"
+                      />
+                      <select
+                        className="form-input settings-custom-field-type"
+                        value={field.type}
+                        onChange={e => updateCustomField(field.id, { type: e.target.value as CustomField['type'] })}
+                      >
+                        {(Object.keys(FIELD_TYPE_LABELS) as CustomField['type'][]).map(t => (
+                          <option key={t} value={t}>{FIELD_TYPE_LABELS[t]}</option>
+                        ))}
+                      </select>
+                      <button
+                        className="settings-icon-btn settings-icon-btn-delete"
+                        onClick={() => removeCustomField(field.id)}
+                        title="Remove field"
+                      >
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+                        </svg>
+                      </button>
+                    </div>
+
+                    {/* Options manager for choice fields */}
+                    {isChoiceType(field.type) && (
+                      <div className="settings-options-area">
+                        <div className="settings-options-label">
+                          {field.type === 'single-choice' ? 'Single Choice' : 'Multiple Choice'} options:
+                        </div>
+                        <div className="settings-options-chips">
+                          {(field.options ?? []).map(opt => (
+                            <span key={opt} className="option-chip">
+                              {opt}
+                              <button
+                                className="option-chip-remove"
+                                onClick={() => removeOptionFromField(field.id, opt)}
+                                title="Remove option"
+                              >
+                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                                  <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                                </svg>
+                              </button>
+                            </span>
+                          ))}
+                          {(field.options ?? []).length === 0 && (
+                            <span className="settings-options-empty">No options yet — add one below</span>
+                          )}
+                        </div>
+                        <div className="settings-options-add-row">
+                          <input
+                            className="form-input settings-options-input"
+                            value={fieldOptionInputs[field.id] ?? ''}
+                            onChange={e => setFieldOptionInputs(prev => ({ ...prev, [field.id]: e.target.value }))}
+                            placeholder="New option..."
+                            onKeyDown={e => e.key === 'Enter' && addOptionToField(field.id)}
+                          />
+                          <button
+                            className="btn-ghost settings-add-btn"
+                            onClick={() => addOptionToField(field.id)}
+                            disabled={!(fieldOptionInputs[field.id] ?? '').trim()}
+                          >+ Add</button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
             )}
 
-            <div className="settings-add-row">
-              <input
-                className="form-input"
-                value={newFieldLabel}
-                onChange={e => setNewFieldLabel(e.target.value)}
-                placeholder="Field label (e.g. Serial Number)"
-                onKeyDown={e => e.key === 'Enter' && addCustomField()}
-              />
-              <select
-                className="form-input settings-type-select"
-                value={newFieldType}
-                onChange={e => setNewFieldType(e.target.value as 'text' | 'number')}
-              >
-                <option value="text">Text</option>
-                <option value="number">Number</option>
-              </select>
-              <button
-                className="btn-ghost settings-add-btn"
-                onClick={addCustomField}
-                disabled={!newFieldLabel.trim()}
-              >+ Add</button>
+            {/* Add new field */}
+            <div className="settings-new-field-block">
+              <div className="settings-add-row">
+                <input
+                  className="form-input"
+                  value={newFieldLabel}
+                  onChange={e => setNewFieldLabel(e.target.value)}
+                  placeholder="Field label (e.g. Serial Number)"
+                  onKeyDown={e => {
+                    if (e.key === 'Enter' && !isChoiceType(newFieldType)) addCustomField()
+                  }}
+                />
+                <select
+                  className="form-input settings-custom-field-type"
+                  value={newFieldType}
+                  onChange={e => {
+                    setNewFieldType(e.target.value as CustomField['type'])
+                    setNewFieldOptions([])
+                    setNewOptionInput('')
+                  }}
+                >
+                  {(Object.keys(FIELD_TYPE_LABELS) as CustomField['type'][]).map(t => (
+                    <option key={t} value={t}>{FIELD_TYPE_LABELS[t]}</option>
+                  ))}
+                </select>
+                <button
+                  className="btn-ghost settings-add-btn"
+                  onClick={addCustomField}
+                  disabled={!canAddNewField}
+                >+ Add</button>
+              </div>
+
+              {/* Options builder for new choice fields */}
+              {isChoiceType(newFieldType) && (
+                <div className="settings-options-area settings-options-area--new">
+                  <div className="settings-options-label">
+                    Add options for this {newFieldType === 'single-choice' ? 'Single Choice' : 'Multiple Choice'} field:
+                  </div>
+                  <div className="settings-options-chips">
+                    {newFieldOptions.map(opt => (
+                      <span key={opt} className="option-chip">
+                        {opt}
+                        <button
+                          className="option-chip-remove"
+                          onClick={() => removeNewOption(opt)}
+                          title="Remove option"
+                        >
+                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                          </svg>
+                        </button>
+                      </span>
+                    ))}
+                    {newFieldOptions.length === 0 && (
+                      <span className="settings-options-empty">Add at least one option below</span>
+                    )}
+                  </div>
+                  <div className="settings-options-add-row">
+                    <input
+                      className="form-input settings-options-input"
+                      value={newOptionInput}
+                      onChange={e => setNewOptionInput(e.target.value)}
+                      placeholder="Option text..."
+                      onKeyDown={e => e.key === 'Enter' && addNewOption()}
+                    />
+                    <button
+                      className="btn-ghost settings-add-btn"
+                      onClick={addNewOption}
+                      disabled={!newOptionInput.trim()}
+                    >+ Add</button>
+                  </div>
+                </div>
+              )}
             </div>
           </section>
 
@@ -190,16 +344,8 @@ export function SettingsPanel({ settings, onUpdate, onReset, onClose }: Props) {
               {settings.categories.map((cat, i) => (
                 <div key={cat} className="settings-category-row">
                   <div className="settings-category-order">
-                    <button
-                      className="settings-order-btn"
-                      onClick={() => moveCategory(i, -1)}
-                      disabled={i === 0}
-                    >↑</button>
-                    <button
-                      className="settings-order-btn"
-                      onClick={() => moveCategory(i, 1)}
-                      disabled={i === settings.categories.length - 1}
-                    >↓</button>
+                    <button className="settings-order-btn" onClick={() => moveCategory(i, -1)} disabled={i === 0}>↑</button>
+                    <button className="settings-order-btn" onClick={() => moveCategory(i, 1)} disabled={i === settings.categories.length - 1}>↓</button>
                   </div>
                   <span className="settings-category-name">{cat}</span>
                   <button

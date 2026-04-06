@@ -7,14 +7,15 @@ export interface DetectedItem {
   quantity: number
   notes?: string
   photos?: string[]
-  customData?: Record<string, string | number>
+  customData?: Record<string, string | number | string[]>
 }
 
 export interface CustomField {
   id: string
   label: string
-  type: 'text' | 'number'
+  type: 'text' | 'multi-text' | 'number' | 'single-choice' | 'multi-choice'
   placeholder?: string
+  options?: string[]
 }
 
 export interface AppSettings {
