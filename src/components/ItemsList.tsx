@@ -19,23 +19,111 @@ interface Props {
 
 const CONDITION_BADGE: Record<string, string> = {
   excellent: 'badge-green',
-  good: 'badge-blue',
-  fair: 'badge-yellow',
-  poor: 'badge-red',
+  good:      'badge-blue',
+  fair:      'badge-yellow',
+  poor:      'badge-red',
 }
 
-const CATEGORY_EMOJI: Record<string, string> = {
-  Electronics: '📺',
-  Furniture: '🪑',
-  Appliances: '🍳',
-  'Art & Decor': '🖼️',
-  Jewellery: '💎',
-  Clothing: '👗',
-  Books: '📚',
-  'Sports & Fitness': '🏋️',
-  Tools: '🔧',
-  Toys: '🧸',
+// SVG icons for categories — clean, minimal
+const CATEGORY_ICON: Record<string, JSX.Element> = {
+  Electronics: (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
+    </svg>
+  ),
+  Furniture: (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M20 9V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v3"/><path d="M2 11v5a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-5a2 2 0 0 0-4 0v2H6v-2a2 2 0 0 0-4 0z"/><line x1="6" y1="18" x2="6" y2="22"/><line x1="18" y1="18" x2="18" y2="22"/>
+    </svg>
+  ),
+  Appliances: (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="2" y="2" width="20" height="20" rx="2"/><path d="M7 7h10v2H7z"/><circle cx="9" cy="15" r="2"/><path d="M14 14h2v4h-2z"/>
+    </svg>
+  ),
+  'Art & Decor': (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
+    </svg>
+  ),
+  Jewellery: (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+    </svg>
+  ),
+  Clothing: (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M20.38 3.46L16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.57a1 1 0 0 0 .99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.57a2 2 0 0 0-1.34-2.23z"/>
+    </svg>
+  ),
+  Books: (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+    </svg>
+  ),
+  'Sports & Fitness': (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10"/><path d="M12 8v8"/><path d="M8 12h8"/>
+    </svg>
+  ),
+  Tools: (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
+    </svg>
+  ),
+  Toys: (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+    </svg>
+  ),
 }
+
+const DefaultCategoryIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
+  </svg>
+)
+
+const IconEdit = () => (
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+  </svg>
+)
+
+const IconTrash = () => (
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+  </svg>
+)
+
+const IconDownload = () => (
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+    <polyline points="7 10 12 15 17 10"/>
+    <line x1="12" y1="15" x2="12" y2="3"/>
+  </svg>
+)
+
+const IconCamera = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+    <circle cx="12" cy="13" r="4"/>
+  </svg>
+)
+
+const IconPlus = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+    <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+  </svg>
+)
+
+const IconMerge = () => (
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/>
+    <line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>
+  </svg>
+)
 
 function fmt(value: number) {
   return new Intl.NumberFormat('en-AU', { style: 'currency', currency: 'AUD', maximumFractionDigits: 0 }).format(value)
@@ -174,17 +262,15 @@ export function ItemsList({ result, onReset, resetLabel = 'Scan Another Photo', 
             </div>
           </div>
 
-          {/* Excel export panel */}
+          {/* Export panel */}
           <div className="export-panel">
             <div className="export-header">
-              <span className="export-title">📊 Export to Excel</span>
-              <span className="export-count">
-                {selected.size} of {allIds.length} items
-              </span>
+              <span className="export-title">Export to Excel</span>
+              <span className="export-count">{selected.size} of {allIds.length} items</span>
             </div>
 
             <div className="export-selected-value">
-              Selected value: <strong>{fmt(selectedValue)}</strong>
+              Selected: <strong>{fmt(selectedValue)}</strong>
             </div>
 
             <label className="checkbox-row select-all-row">
@@ -202,13 +288,13 @@ export function ItemsList({ result, onReset, resetLabel = 'Scan Another Photo', 
               disabled={noneSelected}
               onClick={() => exportToExcel({ ...result, items, totalValue }, selected)}
             >
-              ⬇ Download .xlsx
+              <IconDownload /> Download .xlsx
             </button>
           </div>
 
           {onScanAnotherAngle && (
-            <button className="btn-scan-angle full-width" onClick={onScanAnotherAngle}>
-              📷 Scan Another Angle of This Room
+            <button className="btn-scan-angle" onClick={onScanAnotherAngle}>
+              <IconCamera /> Scan Another Angle
             </button>
           )}
 
@@ -216,10 +302,10 @@ export function ItemsList({ result, onReset, resetLabel = 'Scan Another Photo', 
             {resetLabel}
           </button>
 
-          {/* Merge into another area */}
+          {/* Merge */}
           {otherRooms.length > 0 && onMergeInto && (
             <div className="merge-panel">
-              <div className="merge-title">Merge all items into:</div>
+              <div className="merge-title">Merge all items into</div>
               <div className="merge-row">
                 <select
                   className="form-input merge-select"
@@ -230,11 +316,8 @@ export function ItemsList({ result, onReset, resetLabel = 'Scan Another Photo', 
                     <option key={r.index} value={r.index}>{r.name}</option>
                   ))}
                 </select>
-                <button
-                  className="btn-ghost merge-btn"
-                  onClick={() => onMergeInto(mergeTarget)}
-                >
-                  Merge ↗
+                <button className="btn-ghost merge-btn" onClick={() => onMergeInto(mergeTarget)}>
+                  <IconMerge /> Merge
                 </button>
               </div>
             </div>
@@ -246,7 +329,7 @@ export function ItemsList({ result, onReset, resetLabel = 'Scan Another Photo', 
               className="btn-delete-room"
               onClick={() => { if (window.confirm('Delete this room and all its items?')) onDeleteRoom() }}
             >
-              🗑 Delete This Room
+              <IconTrash /> Delete This Room
             </button>
           )}
         </aside>
@@ -255,7 +338,7 @@ export function ItemsList({ result, onReset, resetLabel = 'Scan Another Photo', 
         <main className="results-main">
           <div className="add-item-bar">
             <button className="btn-add-item" onClick={() => setAddingItem(true)}>
-              ＋ Add Item Manually
+              <IconPlus /> Add Item Manually
             </button>
           </div>
 
@@ -280,7 +363,9 @@ export function ItemsList({ result, onReset, resetLabel = 'Scan Another Photo', 
                         onChange={() => toggleCategory(catIds)}
                       />
                     </label>
-                    <span>{CATEGORY_EMOJI[category] ?? '📦'}</span>
+                    <span className="category-icon">
+                      {CATEGORY_ICON[category] ?? <DefaultCategoryIcon />}
+                    </span>
                     {category}
                     <span className="category-subtotal">
                       {fmt(catItems.reduce((s, i) => s + i.estimatedValue * i.quantity, 0))}
@@ -309,21 +394,17 @@ export function ItemsList({ result, onReset, resetLabel = 'Scan Another Photo', 
                             />
                           </span>
                           <div className="item-name-col">
+                            <span className="item-name">{item.name}</span>
                             <div className="item-mobile-row">
-                              <span className="item-name">{item.name}</span>
-                              <span className="item-mobile-value">
-                                {fmt(item.estimatedValue * item.quantity)}
-                              </span>
-                              <button
-                                className="item-mobile-edit"
-                                type="button"
-                                onClick={e => { e.preventDefault(); e.stopPropagation(); setEditingId(item.id) }}
-                              >✏</button>
-                              <button
-                                className="item-mobile-delete"
-                                type="button"
-                                onClick={e => { e.preventDefault(); e.stopPropagation(); deleteItem(item.id) }}
-                              >🗑</button>
+                              <span className="item-mobile-value">{fmt(item.estimatedValue * item.quantity)}</span>
+                              <button className="item-mobile-edit" type="button"
+                                onClick={e => { e.preventDefault(); e.stopPropagation(); setEditingId(item.id) }}>
+                                <IconEdit />
+                              </button>
+                              <button className="item-mobile-delete" type="button"
+                                onClick={e => { e.preventDefault(); e.stopPropagation(); deleteItem(item.id) }}>
+                                <IconTrash />
+                              </button>
                             </div>
                             {item.notes && <span className="item-notes">{item.notes}</span>}
                             {!!item.photos?.length && (
@@ -346,22 +427,18 @@ export function ItemsList({ result, onReset, resetLabel = 'Scan Another Photo', 
                           <span className="item-value align-right">
                             {fmt(item.estimatedValue * item.quantity)}
                             {item.quantity > 1 && (
-                              <span className="item-unit-price"> ({fmt(item.estimatedValue)} ea)</span>
+                              <span className="item-unit-price">{fmt(item.estimatedValue)} each</span>
                             )}
                           </span>
                           <span className="item-edit-col">
-                            <button
-                              className="btn-edit-item"
-                              type="button"
-                              title="Edit item"
-                              onClick={e => { e.preventDefault(); e.stopPropagation(); setEditingId(item.id) }}
-                            >✏</button>
-                            <button
-                              className="btn-delete-item"
-                              type="button"
-                              title="Delete item"
-                              onClick={e => { e.preventDefault(); e.stopPropagation(); deleteItem(item.id) }}
-                            >🗑</button>
+                            <button className="btn-edit-item" type="button" title="Edit item"
+                              onClick={e => { e.preventDefault(); e.stopPropagation(); setEditingId(item.id) }}>
+                              <IconEdit />
+                            </button>
+                            <button className="btn-delete-item" type="button" title="Delete item"
+                              onClick={e => { e.preventDefault(); e.stopPropagation(); deleteItem(item.id) }}>
+                              <IconTrash />
+                            </button>
                           </span>
                         </label>
                       ))}

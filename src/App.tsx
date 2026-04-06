@@ -9,6 +9,49 @@ import { useSettings } from './hooks/useSettings'
 
 type Phase = 'upload' | 'scanning' | 'results' | 'error'
 
+// ── SVG icons ──────────────────────────────────────────────
+const IconHome = () => (
+  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M3 9.5L12 3l9 6.5V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9.5z"/>
+    <path d="M9 21V12h6v9"/>
+  </svg>
+)
+
+const IconSettings = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="3"/>
+    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+  </svg>
+)
+
+const IconPlus = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+    <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+  </svg>
+)
+
+const IconDownload = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+    <polyline points="7 10 12 15 17 10"/>
+    <line x1="12" y1="15" x2="12" y2="3"/>
+  </svg>
+)
+
+const IconPencil = () => (
+  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+  </svg>
+)
+
+const IconScan = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+    <circle cx="12" cy="13" r="4"/>
+  </svg>
+)
+
 export default function App() {
   const { settings, updateSettings, resetSettings } = useSettings()
   const [settingsOpen, setSettingsOpen] = useState(false)
@@ -27,7 +70,6 @@ export default function App() {
   const [viewingRoom, setViewingRoom] = useState(0)
   const [mergeAfterScanIndex, setMergeAfterScanIndex] = useState<number | null>(null)
 
-  // Rename chip inline edit state
   const [editingChipIndex, setEditingChipIndex] = useState<number | null>(null)
   const [chipEditValue, setChipEditValue] = useState('')
 
@@ -39,7 +81,6 @@ export default function App() {
         const source = demoModeRef.current ? new DemoDataSource() : new ClaudeDataSource()
         const result = await source.analyseImage(base64, mimeType, previewUrl)
         if (mergeAfterScanIndex !== null) {
-          // Auto-merge new items into the existing room
           const targetIndex = mergeAfterScanIndex
           setMergeAfterScanIndex(null)
           setCompletedScans(prev =>
@@ -92,7 +133,6 @@ export default function App() {
     setEditingChipIndex(null)
   }, [])
 
-  // ── Rename room ──────────────────────────────────────────────
   const startRenameChip = (i: number) => {
     setChipEditValue(completedScans[i].roomType)
     setEditingChipIndex(i)
@@ -106,7 +146,6 @@ export default function App() {
     setEditingChipIndex(null)
   }
 
-  // ── Update items (from ItemsList edits / deletes) ────────────
   const updateRoomItems = useCallback((roomIndex: number, items: DetectedItem[]) => {
     setCompletedScans(prev =>
       prev.map((scan, i) =>
@@ -117,7 +156,6 @@ export default function App() {
     )
   }, [])
 
-  // ── Merge room fromIndex into toIndex ────────────────────────
   const mergeRooms = useCallback((fromIndex: number, toIndex: number) => {
     setCompletedScans(prev => {
       const mergedItems = [...prev[toIndex].items, ...prev[fromIndex].items]
@@ -134,7 +172,6 @@ export default function App() {
     setPhase('results')
   }, [])
 
-  // ── Delete entire room ───────────────────────────────────────
   const deleteRoom = useCallback((roomIndex: number) => {
     setCompletedScans(prev => {
       const updated = prev.filter((_, i) => i !== roomIndex)
@@ -158,9 +195,9 @@ export default function App() {
     setExportingAll(true)
     try {
       await exportAllRoomsToExcel(completedScans)
-      showToast(`✅ Exported ${completedScans.length} rooms to Excel`)
+      showToast(`Exported ${completedScans.length} rooms to Excel`)
     } catch (e) {
-      showToast(`❌ Export failed: ${e instanceof Error ? e.message : 'Unknown error'}`)
+      showToast(`Export failed: ${e instanceof Error ? e.message : 'Unknown error'}`)
     } finally {
       setExportingAll(false)
     }
@@ -172,11 +209,7 @@ export default function App() {
 
   return (
     <div className="app">
-      {toast && (
-        <div className="toast">
-          {toast}
-        </div>
-      )}
+      {toast && <div className="toast">{toast}</div>}
 
       {settingsOpen && (
         <SettingsPanel
@@ -187,27 +220,30 @@ export default function App() {
         />
       )}
 
+      {/* ── Header ── */}
       <header className="app-header">
         <div className="header-inner">
-          <div className="header-top">
+          <div className="header-left">
             <div className="logo">
-              <span className="logo-icon">🏠</span>
-              <span className="logo-text">Home Contents Detector</span>
+              <span className="logo-icon"><IconHome /></span>
+              <span className="logo-text">Contents<span>Scan</span></span>
             </div>
+            <div className="header-divider" />
+            <span className="tagline">AI-powered home contents valuation</span>
+          </div>
+          <div className="header-actions">
             <button className="btn-settings" onClick={() => setSettingsOpen(true)} title="Settings">
-              ⚙
+              <IconSettings />
             </button>
           </div>
-          <p className="tagline">
-            Photograph any room — AI identifies everything and estimates replacement value
-          </p>
         </div>
       </header>
 
+      {/* ── Demo banner ── */}
       {demoMode && (
         <div className="demo-banner">
           <div className="api-key-inner">
-            <span className="demo-badge">DEMO MODE</span>
+            <span className="demo-badge">DEMO</span>
             <span className="api-key-label">Using sample data</span>
             <button className="btn-ghost small" onClick={() => setDemoModeSync(false)}>
               Switch to Real AI
@@ -243,34 +279,27 @@ export default function App() {
                       {scan.roomType}
                     </button>
                   )}
-                  {/* Rename pencil — show on active chip */}
                   {viewingRoom === i && phase === 'results' && editingChipIndex !== i && (
-                    <button
-                      className="room-chip-rename"
-                      title="Rename room"
-                      onClick={() => startRenameChip(i)}
-                    >✏</button>
+                    <button className="room-chip-rename" title="Rename room" onClick={() => startRenameChip(i)}>
+                      <IconPencil />
+                    </button>
                   )}
                 </div>
               ))}
               {phase === 'upload' && (
-                <span className="room-chip room-chip-scanning">📷 Scanning new area…</span>
+                <span className="room-chip room-chip-scanning">Scanning new area…</span>
               )}
             </div>
 
             <div className="rooms-bar-actions">
               {phase !== 'upload' && (
                 <button className="btn-ghost small" onClick={addAnotherRoom}>
-                  + Add Area
+                  <IconPlus /> Add Area
                 </button>
               )}
               {completedScans.length > 1 && phase === 'results' && (
-                <button
-                  className="btn-primary small"
-                  onClick={handleExportAll}
-                  disabled={exportingAll}
-                >
-                  {exportingAll ? '⏳ Exporting…' : `📊 Export All (${completedScans.length} rooms)`}
+                <button className="btn-primary small" onClick={handleExportAll} disabled={exportingAll}>
+                  {exportingAll ? 'Exporting…' : <><IconDownload /> Export All ({completedScans.length} rooms)</>}
                 </button>
               )}
               <button className="btn-ghost small" onClick={resetAll}>
@@ -299,7 +328,7 @@ export default function App() {
             <ImageUpload onImage={handleImage} disabled={false} />
             {!demoMode && completedScans.length === 0 && (
               <div className="demo-prompt">
-                <span>Want to explore first?</span>
+                <span>No camera handy?</span>
                 <button className="btn-ghost small" onClick={() => setDemoModeSync(true)}>
                   Try Demo Mode
                 </button>
@@ -324,14 +353,20 @@ export default function App() {
                 ? 'Showing sample room contents'
                 : mergeAfterScanIndex !== null
                   ? `Adding more items to ${completedScans[mergeAfterScanIndex]?.roomType ?? 'room'}…`
-                  : 'Claude is identifying items and looking up replacement values'}
+                  : 'AI is identifying items and estimating replacement values'}
             </p>
           </div>
         )}
 
         {phase === 'error' && (
           <div className="error-state">
-            <div className="error-icon">⚠️</div>
+            <div className="error-icon">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="12" y1="8" x2="12" y2="12"/>
+                <line x1="12" y1="16" x2="12.01" y2="16"/>
+              </svg>
+            </div>
             <h2>Something went wrong</h2>
             <p className="error-message">{error}</p>
             <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap' }}>
@@ -350,7 +385,7 @@ export default function App() {
             key={viewingRoom}
             result={completedScans[viewingRoom]}
             onReset={addAnotherRoom}
-            resetLabel="+ Scan Another Area"
+            resetLabel="Scan Another Area"
             onItemsChange={(items) => updateRoomItems(viewingRoom, items)}
             allRooms={completedScans.length > 1
               ? completedScans.map((s, i) => ({ name: s.roomType, index: i }))

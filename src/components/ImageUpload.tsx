@@ -6,10 +6,9 @@ interface Props {
 }
 
 const ACCEPTED = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
-const MAX_DIMENSION = 1920 // resize if larger than this
+const MAX_DIMENSION = 1920
 const JPEG_QUALITY = 0.85
 
-// Resize + compress image using a canvas, returns base64 JPEG
 function compressImage(file: File): Promise<{ base64: string; mimeType: string; dataUrl: string }> {
   return new Promise((resolve, reject) => {
     const img = new Image()
@@ -97,13 +96,27 @@ export function ImageUpload({ onImage, disabled }: Props) {
           e.target.value = ''
         }}
       />
-      <div className="upload-icon">📷</div>
+
+      <div className="upload-icon">
+        {compressing ? (
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+          </svg>
+        ) : (
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+            <circle cx="8.5" cy="8.5" r="1.5"/>
+            <polyline points="21 15 16 10 5 21"/>
+          </svg>
+        )}
+      </div>
+
       <p className="upload-text">
-        {compressing
-          ? 'Preparing image…'
-          : 'Drop a photo here, or click to browse'}
+        {compressing ? 'Preparing image…' : 'Drop a room photo here'}
       </p>
-      <p className="upload-hint">JPEG, PNG, WebP or GIF · max 20 MB</p>
+      <p className="upload-hint">
+        or <strong>click to browse</strong> · JPEG, PNG, WebP · max 20 MB
+      </p>
     </div>
   )
 }
