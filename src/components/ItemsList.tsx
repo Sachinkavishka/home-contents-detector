@@ -248,7 +248,17 @@ export function ItemsList({ result, onReset, resetLabel = 'Scan Another Photo', 
       <div className="results-layout">
         {/* ── Sidebar ── */}
         <aside className="results-sidebar">
-          <img src={result.imageUrl} alt="Scanned room" className="result-image" />
+          {result.imageUrl ? (
+            <img src={result.imageUrl} alt="Scanned room" className="result-image" />
+          ) : (
+            <div className="result-image-placeholder">
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M3 9.5L12 3l9 6.5V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9.5z"/>
+                <path d="M9 21V12h6v9"/>
+              </svg>
+              <span>Manual Entry</span>
+            </div>
+          )}
 
           <div className="summary-card">
             <div className="summary-room">{result.roomType}</div>

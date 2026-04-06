@@ -46,6 +46,140 @@ const IconPencil = () => (
 )
 
 
+// ── Landing page component ─────────────────────────────────
+interface LandingProps {
+  onImage: (base64: string, mimeType: string, previewUrl: string) => void
+  onManual: (roomName: string) => void
+  onDemo: () => void
+  demoMode: boolean
+  isAddingArea: boolean
+  mergingInto: string | null
+}
+
+function LandingPage({ onImage, onManual, onDemo, demoMode, isAddingArea, mergingInto }: LandingProps) {
+  const [manualRoomName, setManualRoomName] = useState('')
+
+  const contextLabel = mergingInto
+    ? `Adding more items to "${mergingInto}"`
+    : isAddingArea
+    ? 'Adding a new area'
+    : null
+
+  return (
+    <div className="landing">
+      {/* Hero — only on first visit */}
+      {!isAddingArea && (
+        <div className="landing-hero">
+          <h1 className="landing-title">
+            Document your home contents<br />
+            <span>in minutes</span>
+          </h1>
+          <p className="landing-subtitle">
+            Build a complete inventory with replacement values — ready for insurance claims, moves, or peace of mind.
+          </p>
+        </div>
+      )}
+
+      {contextLabel && (
+        <p className="landing-context">{contextLabel}</p>
+      )}
+
+      <div className="landing-cards">
+        {/* ── Card 1: AI Scanner ── */}
+        <div className="landing-card">
+          <div className="landing-card-icon landing-card-icon--ai">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+              <circle cx="12" cy="13" r="4"/>
+            </svg>
+          </div>
+          <div className="landing-card-badge">Recommended</div>
+          <h2 className="landing-card-title">AI Room Scanner</h2>
+          <p className="landing-card-desc">
+            Photograph a room and our AI instantly identifies every item and estimates current replacement values.
+          </p>
+          <ul className="landing-card-features">
+            <li>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              Identifies items automatically
+            </li>
+            <li>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              Current market replacement values
+            </li>
+            <li>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              Scan entire rooms in seconds
+            </li>
+          </ul>
+          <div className="landing-card-action">
+            <ImageUpload onImage={onImage} disabled={false} />
+          </div>
+          {!demoMode && (
+            <button className="landing-demo-link" onClick={onDemo}>
+              No camera? Try demo mode →
+            </button>
+          )}
+        </div>
+
+        {/* ── Divider ── */}
+        <div className="landing-divider">
+          <span>or</span>
+        </div>
+
+        {/* ── Card 2: Manual Entry ── */}
+        <div className="landing-card">
+          <div className="landing-card-icon landing-card-icon--manual">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="8" y1="6" x2="21" y2="6"/>
+              <line x1="8" y1="12" x2="21" y2="12"/>
+              <line x1="8" y1="18" x2="21" y2="18"/>
+              <line x1="3" y1="6" x2="3.01" y2="6"/>
+              <line x1="3" y1="12" x2="3.01" y2="12"/>
+              <line x1="3" y1="18" x2="3.01" y2="18"/>
+            </svg>
+          </div>
+          <h2 className="landing-card-title">Manual Inventory</h2>
+          <p className="landing-card-desc">
+            Know exactly what you have? Add items yourself — great for high-value pieces, specific items, or room-by-room lists.
+          </p>
+          <ul className="landing-card-features">
+            <li>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              No photo required
+            </li>
+            <li>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              Add your own values and notes
+            </li>
+            <li>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              Attach photos per item
+            </li>
+          </ul>
+          <div className="landing-card-action">
+            <div className="manual-entry-form">
+              <input
+                className="form-input"
+                placeholder="Area name (e.g. Living Room, Garage…)"
+                value={manualRoomName}
+                onChange={e => setManualRoomName(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && onManual(manualRoomName)}
+              />
+              <button
+                className="btn-primary full-width"
+                onClick={() => onManual(manualRoomName)}
+              >
+                Start Adding Items
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function App() {
   const { settings, updateSettings, resetSettings } = useSettings()
   const [settingsOpen, setSettingsOpen] = useState(false)
@@ -161,6 +295,24 @@ export default function App() {
         )
         .filter((_, i) => i !== fromIndex)
       setViewingRoom(toIndex > fromIndex ? toIndex - 1 : toIndex)
+      return updated
+    })
+    setPhase('results')
+  }, [])
+
+  // ── Create empty room for manual entry ──────────────────
+  const createManualRoom = useCallback((roomName: string) => {
+    const name = roomName.trim() || 'New Room'
+    const emptyRoom: ScanResult = {
+      roomType: name,
+      items: [],
+      totalValue: 0,
+      imageUrl: '',
+      scanDate: new Date().toISOString(),
+    }
+    setCompletedScans(prev => {
+      const updated = [...prev, emptyRoom]
+      setViewingRoom(updated.length - 1)
       return updated
     })
     setPhase('results')
@@ -318,17 +470,14 @@ export default function App() {
 
       <main className="main-content">
         {phase === 'upload' && (
-          <>
-            <ImageUpload onImage={handleImage} disabled={false} />
-            {!demoMode && completedScans.length === 0 && (
-              <div className="demo-prompt">
-                <span>No camera handy?</span>
-                <button className="btn-ghost small" onClick={() => setDemoModeSync(true)}>
-                  Try Demo Mode
-                </button>
-              </div>
-            )}
-          </>
+          <LandingPage
+            onImage={handleImage}
+            onManual={createManualRoom}
+            onDemo={() => setDemoModeSync(true)}
+            demoMode={demoMode}
+            isAddingArea={completedScans.length > 0}
+            mergingInto={mergeAfterScanIndex !== null ? completedScans[mergeAfterScanIndex]?.roomType : null}
+          />
         )}
 
         {phase === 'scanning' && (
